@@ -1,0 +1,7 @@
+{
+  "name": "NasBaladna - Fresh Produce & Grocery Delivery",
+  "description": "Order farm-fresh produce and groceries with real-time inventory tracking, secure payment gateway, and live home delivery tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
