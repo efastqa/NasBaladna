@@ -583,21 +583,6 @@ export const AdminPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Demo Credentials Assistant */}
-            <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Admin Login:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername('admin');
-                  setPassword(adminPassword || 'admin');
-                }}
-                className="text-emerald-400 font-bold hover:underline"
-              >
-                Auto-fill Current Credentials
-              </button>
-            </div>
-
             <button
               type="submit"
               disabled={isLoggingIn}

@@ -18,6 +18,7 @@ import {
   CATEGORIES_DATA,
   DEFAULT_DELIVERY_DRIVER,
 } from '../data/mockData';
+import { api } from '../services/api';
 
 interface StoreContextType {
   products: Product[];
@@ -256,6 +257,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('nb_cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Sync initial state from Express backend API
+  useEffect(() => {
+    let isMounted = true;
+    const syncBackend = async () => {
+      try {
+        const [serverProds, serverCats, serverOrders, serverDriver, serverLogs] = await Promise.allSettled([
+          api.getProducts(),
+          api.getCategories(),
+          api.getOrders(),
+          api.getDriver(),
+          api.getInventoryLogs(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (serverProds.status === 'fulfilled' && serverProds.value.length > 0) {
+          setProducts(serverProds.value);
+        }
+        if (serverCats.status === 'fulfilled' && serverCats.value.length > 0) {
+          setCategories(serverCats.value);
+        }
+        if (serverOrders.status === 'fulfilled' && serverOrders.value.length > 0) {
+          setOrdersHistory(serverOrders.value);
+        }
+        if (serverDriver.status === 'fulfilled') {
+          setDeliveryDriver(serverDriver.value);
+        }
+        if (serverLogs.status === 'fulfilled' && serverLogs.value.length > 0) {
+          setInventoryLogs(serverLogs.value);
+        }
+      } catch (err) {
+        console.warn('Backend sync deferred or running local:', err);
+      }
+    };
+
+    syncBackend();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -328,6 +370,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAdminPassword(trimmedNew);
     localStorage.setItem('nb_admin_password', trimmedNew);
     localStorage.setItem('nb_admin_password_updated', new Date().toISOString());
+    api.changeAdminPassword(trimmedCurrent, trimmedNew).catch((e) => console.warn('API change password:', e));
     showToast('Admin password changed successfully! Remember your new password.');
     return { success: true, message: 'Admin password changed successfully!' };
   };
@@ -340,6 +383,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAdminPassword('admin');
     localStorage.setItem('nb_admin_password', 'admin');
     localStorage.removeItem('nb_admin_password_updated');
+    api.resetAdminPassword().catch((e) => console.warn('API reset password:', e));
     showToast('Admin password reset to default "admin"');
     return true;
   };
@@ -360,6 +404,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return false;
     }
     setProducts((prev) => [product, ...prev]);
+    api.createProduct(product).catch((e) => console.warn('API createProduct:', e));
     setInventoryLogs((logs) => [
       {
         id: `log-${Date.now()}`,
@@ -389,6 +434,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return item;
       })
     );
+    api.updateProduct(id, updates).catch((e) => console.warn('API updateProduct:', e));
     showToast('Product details updated successfully');
     return true;
   };
@@ -399,6 +445,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return false;
     }
     setProducts((prev) => prev.filter((item) => item.id !== id));
+    api.deleteProduct(id).catch((e) => console.warn('API deleteProduct:', e));
     showToast('Product removed from store');
     return true;
   };
@@ -409,6 +456,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return false;
     }
     setProducts((prev) => [...newProds, ...prev]);
+    api.bulkAddProducts(newProds).catch((e) => console.warn('API bulkAddProducts:', e));
     showToast(`Imported ${newProds.length} products successfully!`);
     return true;
   };
@@ -425,6 +473,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return { ...item, basePrice: newBasePrice };
       })
     );
+    api.bulkUpdatePrices(percentageChange).catch((e) => console.warn('API bulkUpdatePrices:', e));
     showToast(`Adjusted all product prices by ${percentageChange > 0 ? '+' : ''}${percentageChange}%`);
     return true;
   };
@@ -440,6 +489,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (activeOrder && activeOrder.id === orderId) {
       setActiveOrder((prev) => (prev ? { ...prev, status } : null));
     }
+    api.updateOrderStatus(orderId, status).catch((e) => console.warn('API updateOrderStatus:', e));
     showToast(`Order status updated to ${status}`);
     return true;
   };
@@ -470,6 +520,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       description: newCat.description || '',
     };
     setCategories((prev) => [...prev, created]);
+    api.createCategory(created).catch((e) => console.warn('API createCategory:', e));
     showToast(`Category "${created.name}" created successfully!`);
     return true;
   };
@@ -482,6 +533,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
+    api.updateCategory(id, updates).catch((e) => console.warn('API updateCategory:', e));
     showToast('Category updated successfully');
     return true;
   };
@@ -497,6 +549,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return false;
     }
     setCategories((prev) => prev.filter((c) => c.id !== id));
+    api.deleteCategory(id).catch((e) => console.warn('API deleteCategory:', e));
     if (selectedCategory === id) {
       setSelectedCategory('all');
     }
@@ -511,6 +564,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     setCategories(CATEGORIES_DATA);
     localStorage.setItem('nb_categories', JSON.stringify(CATEGORIES_DATA));
+    api.resetCategories().catch((e) => console.warn('API resetCategories:', e));
     showToast('Categories & high-res images refreshed to latest defaults!');
     return true;
   };
@@ -523,6 +577,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     setDeliveryDriver((prev) => {
       const next = { ...prev, ...updates };
+      api.updateDriver(next).catch((e) => console.warn('API updateDriver:', e));
       // Also update active order's courier in real time if exists
       if (activeOrder) {
         setActiveOrder((ord) =>
@@ -552,6 +607,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     delta: number,
     reason: 'customer_order' | 'restock' | 'manual_audit' = 'manual_audit'
   ) => {
+    api.adjustStock(productId, delta, reason).catch((e) => console.warn('API adjustStock:', e));
     setProducts((prev) =>
       prev.map((item) => {
         if (item.id === productId) {
@@ -688,6 +744,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setActiveOrder(newOrder);
     setOrdersHistory((prev) => [newOrder, ...prev]);
+    api.createOrder(newOrder).catch((e) => console.warn('API createOrder:', e));
     clearCart();
     setIsCheckoutOpen(false);
     setIsTrackingOpen(true);
