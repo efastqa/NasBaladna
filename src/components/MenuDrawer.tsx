@@ -169,7 +169,7 @@ export const MenuDrawer: React.FC = () => {
         </div>
 
         {/* Footer info & Discreet Admin Login Link */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between">
+        <div className="p-4 pb-[max(1rem,calc(env(safe-area-inset-bottom)+0.75rem))] border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between">
           <span>NasBaladna · Doha, Qatar</span>
           <button
             onClick={() => {

@@ -123,6 +123,10 @@ export const AdminPortal: React.FC = () => {
   const [newDescription, setNewDescription] = useState('Fresh morning harvest from NasBaladna local greenhouses.');
   const [newOrganic, setNewOrganic] = useState(true);
 
+  // Admin Products Search & Filter State
+  const [adminSearch, setAdminSearch] = useState('');
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState('all');
+
   // Delivery Driver Form State
   const [driverName, setDriverName] = useState(deliveryDriver.name);
   const [driverPhone, setDriverPhone] = useState(deliveryDriver.phone);
@@ -629,10 +633,10 @@ export const AdminPortal: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button
               onClick={() => setActiveTab('security')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
                 activeTab === 'security'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
@@ -646,18 +650,20 @@ export const AdminPortal: React.FC = () => {
 
             <button
               onClick={() => setCurrentView('customer')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
             >
               <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Customer Store</span>
+              <span className="hidden sm:inline">Customer Store</span>
+              <span className="sm:hidden">Store</span>
             </button>
 
             <button
               onClick={adminLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-xs font-semibold text-rose-200 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-xs font-semibold text-rose-200 transition-colors"
+              title="Log out of admin console"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
+              <span className="hidden xs:inline">Logout</span>
             </button>
           </div>
         </div>
@@ -765,174 +771,242 @@ export const AdminPortal: React.FC = () => {
         </div>
 
         {/* TAB 1: MANAGE PRODUCTS & IN-LINE PRICE EDITING */}
-        {activeTab === 'products' && (
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold font-['Outfit'] text-white">
-                  Live Produce Catalog & Price Management
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Adjust retail rates, B2B crate wholesale pricing, and stock levels. Changes appear immediately in the customer storefront.
-                </p>
-              </div>
+        {activeTab === 'products' && (() => {
+          const displayedAdminProducts = products.filter((p) => {
+            const matchesCat = adminCategoryFilter === 'all' || p.category === adminCategoryFilter;
+            const matchesSearch =
+              adminSearch.trim() === '' ||
+              p.name.toLowerCase().includes(adminSearch.toLowerCase()) ||
+              p.sku.toLowerCase().includes(adminSearch.toLowerCase()) ||
+              p.category.toLowerCase().includes(adminSearch.toLowerCase());
+            return matchesCat && matchesSearch;
+          });
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => bulkUpdatePrices(5)}
-                  className="px-3 py-1.5 bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold text-xs rounded-xl hover:bg-emerald-800"
-                >
-                  +5% All Prices
-                </button>
-                <button
-                  onClick={() => bulkUpdatePrices(-5)}
-                  className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700"
-                >
-                  -5% All Prices
-                </button>
-                <button
-                  onClick={() => setActiveTab('add_product')}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Product</span>
-                </button>
-              </div>
-            </div>
+          return (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold font-['Outfit'] text-white">
+                      Live Produce Catalog & Price Management
+                    </h2>
+                    <span className="text-[11px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full">
+                      {products.length} items
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Adjust retail rates, B2B wholesale pricing, and stock. Unlimited products supported with instant database persistence.
+                  </p>
+                </div>
 
-            <div className="border border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-800/80 bg-slate-900/50">
-              {products.map((p) => {
-                const isEditing = editingId === p.id;
-                const wholesaleVal = p.wholesalePrice || p.basePrice * 4.5;
-
-                return (
-                  <div
-                    key={p.id}
-                    className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-900 transition-colors"
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => bulkUpdatePrices(5)}
+                    className="px-2.5 sm:px-3 py-1.5 bg-emerald-900/60 border border-emerald-700 text-emerald-300 font-bold text-xs rounded-xl hover:bg-emerald-800"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="w-12 h-12 rounded-xl object-contain bg-slate-950 p-1 border border-slate-800 shrink-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-white text-xs sm:text-sm truncate">
-                            {p.name}
-                          </h4>
-                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                            {p.sku}
-                          </span>
+                    +5% Prices
+                  </button>
+                  <button
+                    onClick={() => bulkUpdatePrices(-5)}
+                    className="px-2.5 sm:px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700"
+                  >
+                    -5% Prices
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('add_product')}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Product</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Product Search & Filter Bar */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="sm:col-span-2 relative">
+                  <input
+                    type="text"
+                    value={adminSearch}
+                    onChange={(e) => setAdminSearch(e.target.value)}
+                    placeholder="Search by name, SKU, or keyword..."
+                    className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                  {adminSearch && (
+                    <button
+                      onClick={() => setAdminSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={adminCategoryFilter}
+                    onChange={(e) => setAdminCategoryFilter(e.target.value)}
+                    className="w-full text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="all">All Categories ({products.length})</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="border border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-800/80 bg-slate-900/50">
+                {displayedAdminProducts.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 text-xs space-y-2">
+                    <p>No products match your search or filter.</p>
+                    <button
+                      onClick={() => {
+                        setAdminSearch('');
+                        setAdminCategoryFilter('all');
+                      }}
+                      className="text-emerald-400 underline font-semibold"
+                    >
+                      Reset filters
+                    </button>
+                  </div>
+                ) : (
+                  displayedAdminProducts.map((p) => {
+                    const isEditing = editingId === p.id;
+                    const wholesaleVal = p.wholesalePrice || p.basePrice * 4.5;
+
+                    return (
+                      <div
+                        key={p.id}
+                        className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-900 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            className="w-12 h-12 rounded-xl object-contain bg-slate-950 p-1 border border-slate-800 shrink-0"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-white text-xs sm:text-sm truncate">
+                                {p.name}
+                              </h4>
+                              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">
+                                {p.sku}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 truncate">
+                              <span className="capitalize">{p.category}</span>
+                              <span>·</span>
+                              <span>{p.baseWeight}</span>
+                              <span>·</span>
+                              <span className="text-emerald-400 truncate">{p.farm}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                          <span className="capitalize">{p.category}</span>
-                          <span>·</span>
-                          <span>Base: {p.baseWeight}</span>
-                          <span>·</span>
-                          <span className="text-emerald-400">{p.farm}</span>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                          {isEditing ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div>
+                                <label className="block text-[10px] text-slate-400">Retail</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={tempPrice}
+                                  onChange={(e) => setTempPrice(parseFloat(e.target.value) || 0)}
+                                  className="w-16 sm:w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-slate-400">B2B Crate</label>
+                                <input
+                                  type="number"
+                                  step="0.5"
+                                  value={tempWholesale}
+                                  onChange={(e) => setTempWholesale(parseFloat(e.target.value) || 0)}
+                                  className="w-16 sm:w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-slate-400">Stock</label>
+                                <input
+                                  type="number"
+                                  value={tempStock}
+                                  onChange={(e) => setTempStock(parseInt(e.target.value, 10) || 0)}
+                                  className="w-14 sm:w-16 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
+                                />
+                              </div>
+                              <button
+                                onClick={() => handleSaveEdit(p)}
+                                className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold mt-3"
+                                title="Save"
+                              >
+                                <Save className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="p-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold mt-3"
+                                title="Cancel"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+                              <div className="text-left sm:text-right">
+                                <span className="text-[10px] text-slate-400 block">Retail</span>
+                                <span className="font-mono font-bold text-xs sm:text-sm text-white">
+                                  {formatPrice(p.basePrice)}
+                                </span>
+                              </div>
+
+                              <div className="text-left sm:text-right pl-2 sm:pl-3 border-l border-slate-800">
+                                <span className="text-[10px] text-emerald-400 block">
+                                  B2B
+                                </span>
+                                <span className="font-mono font-bold text-xs sm:text-sm text-emerald-400">
+                                  {formatPrice(wholesaleVal)}
+                                </span>
+                              </div>
+
+                              <div className="text-left sm:text-right pl-2 sm:pl-3 border-l border-slate-800">
+                                <span className="text-[10px] text-slate-400 block">Stock</span>
+                                <span className="font-mono font-bold text-xs text-slate-300">
+                                  {p.stock}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1 pl-1 sm:pl-3">
+                                <button
+                                  onClick={() => handleStartEdit(p)}
+                                  className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                  title="Edit Price & Stock"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteProduct(p.id)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
+                                  title="Delete Product"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
-                      {isEditing ? (
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <label className="block text-[10px] text-slate-400">Retail</label>
-                            <input
-                              type="number"
-                              step="0.1"
-                              value={tempPrice}
-                              onChange={(e) => setTempPrice(parseFloat(e.target.value) || 0)}
-                              className="w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-slate-400">B2B Crate</label>
-                            <input
-                              type="number"
-                              step="0.5"
-                              value={tempWholesale}
-                              onChange={(e) => setTempWholesale(parseFloat(e.target.value) || 0)}
-                              className="w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-slate-400">Stock</label>
-                            <input
-                              type="number"
-                              value={tempStock}
-                              onChange={(e) => setTempStock(parseInt(e.target.value, 10) || 0)}
-                              className="w-16 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
-                            />
-                          </div>
-                          <button
-                            onClick={() => handleSaveEdit(p)}
-                            className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold mt-3"
-                            title="Save"
-                          >
-                            <Save className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="p-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold mt-3"
-                            title="Cancel"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block">Retail Price</span>
-                            <span className="font-mono font-bold text-sm text-white">
-                              {formatPrice(p.basePrice)}
-                            </span>
-                          </div>
-
-                          <div className="text-right pl-3 border-l border-slate-800">
-                            <span className="text-[10px] text-emerald-400 block">
-                              B2B ({p.wholesaleUnit || '5kg Crate'})
-                            </span>
-                            <span className="font-mono font-bold text-sm text-emerald-400">
-                              {formatPrice(wholesaleVal)}
-                            </span>
-                          </div>
-
-                          <div className="text-right pl-3 border-l border-slate-800">
-                            <span className="text-[10px] text-slate-400 block">Stock</span>
-                            <span className="font-mono font-bold text-xs text-slate-300">
-                              {p.stock} units
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1 pl-3">
-                            <button
-                              onClick={() => handleStartEdit(p)}
-                              className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors"
-                              title="Edit Price & Stock"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteProduct(p.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors"
-                              title="Delete Product"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* TAB 2: ADD NEW PRODUCT */}
         {activeTab === 'add_product' && (

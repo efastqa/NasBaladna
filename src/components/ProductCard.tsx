@@ -121,17 +121,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
 
         {/* Pricing & CTA */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-2">
-          <div>
-            <span className="text-xs text-slate-500 block leading-none">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-2 gap-1.5">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-xs text-slate-500 block leading-none truncate">
               {isBusiness ? 'B2B Wholesale' : product.isNearExpiry ? 'Deal Price' : 'Starting from'}
             </span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className={`text-base sm:text-lg font-bold font-mono ${isBusiness ? 'text-emerald-700' : product.isNearExpiry ? 'text-rose-600' : 'text-slate-900'}`}>
+            <div className="flex items-baseline gap-1 mt-0.5">
+              <span className={`text-sm sm:text-base md:text-lg font-bold font-mono ${isBusiness ? 'text-emerald-700' : product.isNearExpiry ? 'text-rose-600' : 'text-slate-900'}`}>
                 {formatPrice(effectivePrice)}
               </span>
               {!isBusiness && product.originalPrice && (
-                <span className="text-xs text-slate-400 line-through font-mono">
+                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-mono">
                   {formatPrice(product.originalPrice)}
                 </span>
               )}
@@ -142,7 +142,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             whileTap={{ scale: 0.92 }}
             onClick={handleQuickAdd}
             disabled={isOutOfStock}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all shrink-0 ${
               isOutOfStock
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 : inCartQuantity > 0

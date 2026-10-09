@@ -152,18 +152,18 @@ export const WhatsAppChatModal: React.FC = () => {
         </div>
 
         {/* Input Bar */}
-        <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+        <div className="p-3 bg-white border-t border-slate-200 flex items-center gap-2 pb-[max(0.75rem,calc(env(safe-area-inset-bottom)+0.5rem))]">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Type your message..."
-            className="flex-1 text-xs px-3 py-2.5 bg-slate-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="flex-1 text-base sm:text-xs px-3 py-2.5 bg-slate-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
           <button
             onClick={() => handleSend()}
-            className="p-2.5 bg-[#075E54] hover:bg-[#128C7E] text-white rounded-xl shadow-xs transition-colors"
+            className="p-2.5 bg-[#075E54] hover:bg-[#128C7E] text-white rounded-xl shadow-xs transition-colors shrink-0"
           >
             <Send className="w-4 h-4" />
           </button>

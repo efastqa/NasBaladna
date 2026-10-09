@@ -77,7 +77,7 @@ const MainStoreContent: React.FC = () => {
       : `${selectedCategory.toUpperCase()} Selection`;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] text-slate-800 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="min-h-screen min-h-[100dvh] overflow-x-hidden w-full bg-[#F8FAF9] text-slate-800 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Toast Notification Alert with Spring Animation */}
       <AnimatePresence>
         {toastMessage && (
@@ -98,7 +98,7 @@ const MainStoreContent: React.FC = () => {
       <Header />
 
       {/* Main Responsive Customer Storefront */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 sm:py-8 space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3.5 sm:px-6 py-4 sm:py-8 space-y-6 overflow-x-hidden">
         {/* Search Bar */}
         <div className="relative max-w-2xl mx-auto sm:mx-0">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -109,7 +109,7 @@ const MainStoreContent: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search farm fresh vegetables, fruits, dairy, or herbs (e.g. Pani Dodam)..."
-            className="w-full text-xs sm:text-sm pl-10 pr-10 py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-400 text-slate-800"
+            className="w-full text-base sm:text-sm pl-10 pr-10 py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-400 text-slate-800"
           />
           {searchQuery && (
             <button
@@ -250,7 +250,7 @@ const MainStoreContent: React.FC = () => {
         </section>
 
         {/* Clean Public Footer */}
-        <footer className="pt-10 pb-20 sm:pb-12 border-t border-slate-200 text-xs text-slate-500">
+        <footer className="pt-10 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:pb-12 border-t border-slate-200 text-xs text-slate-500">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6">
             <NasBaladnaLogo size="sm" showTagline={true} />
             <div className="flex items-center gap-6 font-medium text-slate-600">
@@ -269,7 +269,7 @@ const MainStoreContent: React.FC = () => {
             {/* Discreet Staff & Admin Access Link */}
             <button
               onClick={() => setCurrentView('admin')}
-              className="text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors"
+              className="text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors py-1 px-2 rounded-lg hover:bg-slate-100"
               title="Staff & Store Management Login"
             >
               <Lock className="w-3 h-3" />
@@ -285,11 +285,11 @@ const MainStoreContent: React.FC = () => {
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsWhatsAppOpen(true)}
         aria-label="WhatsApp Support"
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-xl flex items-center justify-center transition-all group"
+        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-6 right-4 sm:right-6 z-25 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-xl flex items-center justify-center transition-all group"
         title="Chat with NasBaladna on WhatsApp"
       >
         <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-40 animate-ping group-hover:opacity-75 pointer-events-none" />
-        <MessageCircle className="w-7 h-7 fill-current relative z-10" />
+        <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 fill-current relative z-10" />
       </motion.button>
 
       {/* Mobile Bottom Navigation Bar (Home, Menu, Search, Shop, Cart, Account) */}

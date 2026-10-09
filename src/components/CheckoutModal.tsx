@@ -81,7 +81,7 @@ export const CheckoutModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex justify-center items-start sm:items-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl sm:rounded-3xl shadow-2xl overflow-hidden min-h-screen sm:min-h-0 max-h-[96vh] flex flex-col my-auto border border-slate-200/60">
+      <div className="bg-white w-full max-w-2xl sm:rounded-3xl shadow-2xl overflow-hidden min-h-[100dvh] sm:min-h-0 sm:max-h-[92dvh] flex flex-col my-auto border border-slate-200/60">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export const CheckoutModal: React.FC = () => {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmitOrder} className="overflow-y-auto flex-1 p-5 sm:p-7 space-y-6">
+        <form onSubmit={handleSubmitOrder} className="overflow-y-auto flex-1 p-4 sm:p-7 space-y-6 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.5rem))]">
           {/* Section 1: Delivery Address & Customer Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
