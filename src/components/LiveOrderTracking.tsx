@@ -18,7 +18,7 @@ import {
   BellRing,
 } from 'lucide-react';
 import { OrderStatus } from '../types';
-import { GoogleDeliveryMap } from './GoogleDeliveryMap';
+import { DeliveryRouteRadar } from './DeliveryRouteRadar';
 import { NotificationService } from '../services/notifications';
 import { OrderReceiptModal } from './OrderReceiptModal';
 
@@ -231,25 +231,19 @@ export const LiveOrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* Live Google Maps Delivery Telemetry */}
+              {/* Live GPS Delivery Telemetry */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
                     <MapPin className="w-4 h-4 text-emerald-600" />
-                    <span>Live GPS Delivery Telemetry (Google Maps)</span>
+                    <span>Live GPS Delivery Telemetry</span>
                   </div>
                   <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Google Maps Platform Active
+                    Live Cold-Chain Tracking
                   </span>
                 </div>
 
-                <GoogleDeliveryMap
-                  order={order}
-                  apiKey={
-                    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-                    'AIzaSyDUSGKV8Bx619Wm4mB_u34hf8XQta9PGbY'
-                  }
-                />
+                <DeliveryRouteRadar order={order} />
               </div>
 
               {/* Automated WhatsApp & SMS Notifications Action Bar */}

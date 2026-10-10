@@ -41,9 +41,11 @@ import {
   RotateCcw,
   FileImage,
   BellRing,
+  Printer,
 } from 'lucide-react';
-import { CategoryType, Product, OrderStatus } from '../types';
+import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
+import { OrderReceiptModal } from './OrderReceiptModal';
 import {
   categoryVegImg,
   categoryFruitsImg,
@@ -128,6 +130,7 @@ export const AdminPortal: React.FC = () => {
   // Admin Products Search & Filter State
   const [adminSearch, setAdminSearch] = useState('');
   const [adminCategoryFilter, setAdminCategoryFilter] = useState('all');
+  const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
 
   // Delivery Driver Form State
   const [driverName, setDriverName] = useState(deliveryDriver.name);
@@ -2228,6 +2231,16 @@ export const AdminPortal: React.FC = () => {
                             <Send className="w-3.5 h-3.5 text-emerald-400" />
                             <span className="hidden xl:inline">SMS</span>
                           </a>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReceiptOrder(ord)}
+                            className="p-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                            title="View & Print Official Customer Receipt / Tax Invoice"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="hidden xl:inline">Receipt</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2569,6 +2582,16 @@ export const AdminPortal: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* Official Tax Invoice & Order Receipt Modal for Admin */}
+      {selectedReceiptOrder && (
+        <OrderReceiptModal
+          order={selectedReceiptOrder}
+          isOpen={Boolean(selectedReceiptOrder)}
+          onClose={() => setSelectedReceiptOrder(null)}
+          formatPrice={formatPrice}
+        />
+      )}
     </div>
   );
 };
