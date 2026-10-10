@@ -10,6 +10,8 @@ import {
   Clock,
   User,
   LayoutDashboard,
+  QrCode,
+  LogOut,
 } from 'lucide-react';
 import { CURRENCY_RATES } from '../data/mockData';
 import { CurrencyType } from '../types';
@@ -23,10 +25,12 @@ export const Header: React.FC = () => {
     setIsMenuDrawerOpen,
     setIsTrackingOpen,
     setIsInventoryModalOpen,
+    setIsQrModalOpen,
     activeOrder,
     setActiveMobileTab,
     ownerPhone,
     isAdminAuthenticated,
+    adminLogout,
     setCurrentView,
   } = useStore();
 
@@ -132,17 +136,38 @@ export const Header: React.FC = () => {
             ))}
           </select>
 
-          {/* If authenticated as Admin, show discrete Admin Dashboard button */}
+          {/* Scan to Order QR Code Button */}
+          <button
+            onClick={() => setIsQrModalOpen(true)}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-2 text-xs font-semibold text-slate-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200/80 rounded-xl transition-all shrink-0 cursor-pointer"
+            title="Scan & Order QR Code / Print Standees"
+          >
+            <QrCode className="w-3.5 h-3.5 text-emerald-700" />
+            <span className="hidden lg:inline">Scan to Order</span>
+            <span className="lg:hidden hidden sm:inline">QR Code</span>
+          </button>
+
+          {/* If authenticated as Admin, show Admin Dashboard + Log Out buttons */}
           {isAdminAuthenticated && (
-            <button
-              onClick={() => setCurrentView('admin')}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-xs shrink-0"
-              title="Return to Admin Dashboard"
-            >
-              <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="hidden sm:inline">Admin Dashboard</span>
-              <span className="sm:hidden">Admin</span>
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setCurrentView('admin')}
+                className="flex items-center gap-1 px-2 sm:px-3 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+                title="Return to Admin Dashboard"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">Admin</span>
+              </button>
+              
+              <button
+                onClick={adminLogout}
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+                title="Log out of Admin session"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           )}
 
           {/* Account / Order Tracking Button */}

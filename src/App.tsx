@@ -11,6 +11,7 @@ import { LiveOrderTracking } from './components/LiveOrderTracking';
 import { InventoryManagerModal } from './components/InventoryManagerModal';
 import { WhatsAppChatModal } from './components/WhatsAppChatModal';
 import { MenuDrawer } from './components/MenuDrawer';
+import { ScanToOrderModal } from './components/ScanToOrderModal';
 import { BottomNav } from './components/BottomNav';
 import { AdminPortal } from './components/AdminPortal';
 import { NasBaladnaLogo } from './components/NasBaladnaLogo';
@@ -24,6 +25,7 @@ import {
   RotateCcw,
   Package,
   Lock,
+  QrCode,
 } from 'lucide-react';
 
 const MainStoreContent: React.FC = () => {
@@ -39,6 +41,7 @@ const MainStoreContent: React.FC = () => {
     setIsCartOpen,
     setIsInventoryModalOpen,
     setIsWhatsAppOpen,
+    setIsQrModalOpen,
     toastMessage,
     cartCount,
     setIsMenuDrawerOpen,
@@ -258,6 +261,13 @@ const MainStoreContent: React.FC = () => {
               <button onClick={() => setIsInventoryModalOpen(true)} className="hover:text-emerald-800">
                 Stock Availability
               </button>
+              <button
+                onClick={() => setIsQrModalOpen(true)}
+                className="hover:text-emerald-800 flex items-center gap-1 font-semibold text-emerald-700"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Scan to Order QR</span>
+              </button>
               <a href={`tel:${ownerPhone}`} className="hover:text-emerald-800 font-mono">
                 Hotline: {ownerPhone}
               </a>
@@ -305,6 +315,7 @@ const MainStoreContent: React.FC = () => {
       <InventoryManagerModal />
       <WhatsAppChatModal />
       <MenuDrawer />
+      <ScanToOrderModal />
     </div>
   );
 };

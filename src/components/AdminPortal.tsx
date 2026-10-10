@@ -42,10 +42,12 @@ import {
   FileImage,
   BellRing,
   Printer,
+  QrCode,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
 import { OrderReceiptModal } from './OrderReceiptModal';
+import { ScanToOrderModal } from './ScanToOrderModal';
 import {
   categoryVegImg,
   categoryFruitsImg,
@@ -101,8 +103,9 @@ export const AdminPortal: React.FC = () => {
 
   // Dashboard active tab
   const [activeTab, setActiveTab] = useState<
-    'products' | 'add_product' | 'categories' | 'delivery_driver' | 'bulk' | 'orders' | 'inventory' | 'security'
+    'products' | 'add_product' | 'categories' | 'delivery_driver' | 'bulk' | 'orders' | 'inventory' | 'security' | 'qr_studio'
   >('products');
+  const [isAdminQrModalOpen, setIsAdminQrModalOpen] = useState(false);
 
   // Password Management Form State
   const [currentPassInput, setCurrentPassInput] = useState('');
@@ -640,6 +643,19 @@ export const AdminPortal: React.FC = () => {
 
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <button
+              onClick={() => setActiveTab('qr_studio')}
+              className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                activeTab === 'qr_studio'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+              }`}
+              title="Scan & Order QR Code Studio & Print Station"
+            >
+              <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">QR Codes</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('security')}
               className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 ${
                 activeTab === 'security'
@@ -771,6 +787,18 @@ export const AdminPortal: React.FC = () => {
           >
             <KeyRound className="w-4 h-4 text-amber-300" />
             <span>Password & Security</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('qr_studio')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
+              activeTab === 'qr_studio'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <QrCode className="w-4 h-4 text-emerald-400" />
+            <span>Scan & Order QR Studio</span>
           </button>
 
           <button
@@ -2574,6 +2602,125 @@ export const AdminPortal: React.FC = () => {
           </div>
         )}
 
+        {/* TAB 8: SCAN & ORDER QR CODE STUDIO & PRINT STATION */}
+        {activeTab === 'qr_studio' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-emerald-400" />
+                    <span>Scan & Order QR Code Studio</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    PRINT & DEPLOY
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  Generate, customize, and print high-resolution branded QR codes for dining tables, cashier counters, paper delivery bags, carton boxes, flyers, and storefront windows so customers can scan with their phone and order in 30 seconds.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setIsAdminQrModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition-all cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Open Full Print Studio</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Placement Guide Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-xs text-white">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">1</span>
+                  <span>Table & Counter Standees</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Print the <b>A5 Table Tent template</b> and place it inside transparent acrylic L-stands on cafe tables and cashier desks.
+                </p>
+              </div>
+
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-xs text-white">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">2</span>
+                  <span>Packaging & Bag Stickers</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Print the <b>Sheet of 6 Stickers</b> on adhesive paper. Stick one on every grocery paper bag and delivery carton for repeat orders.
+                </p>
+              </div>
+
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-xs text-white">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">3</span>
+                  <span>Storefronts & Vehicle Decals</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Print the large <b>A4 Poster</b> for shop doors, residential compound noticeboards, and magnetic delivery van doors across Qatar.
+                </p>
+              </div>
+            </div>
+
+            {/* In-Line QR Generator and Print Station */}
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+                <div>
+                  <h4 className="text-sm font-bold text-white">Print Station Ready</h4>
+                  <p className="text-xs text-slate-400">Preview standee or open full print dialog</p>
+                </div>
+                <button
+                  onClick={() => setIsAdminQrModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-400 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Customize Templates & Links</span>
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-4">
+                <div className="p-4 bg-white rounded-2xl shadow-xl flex flex-col items-center max-w-xs text-center border-4 border-emerald-800 text-slate-900">
+                  <NasBaladnaLogo size="sm" showTagline={false} />
+                  <span className="text-xs font-black text-emerald-900 mt-2">SCAN TO ORDER</span>
+                  <span className="text-[11px] font-bold text-emerald-700">امسح واطلب طازجاً</span>
+                  <div className="my-2 p-3 bg-emerald-50 rounded-xl border border-dashed border-emerald-600">
+                    <QrCode className="w-32 h-32 text-emerald-950" />
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-semibold">📞 {ownerPhone}</span>
+                </div>
+
+                <div className="space-y-3 text-xs max-w-md">
+                  <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-1">
+                    <span className="text-slate-400 block text-[11px]">How customer scans:</span>
+                    <p className="text-slate-200">
+                      Customer points iPhone or Android native camera at the QR code. The yellow notification banner opens the live store immediately without installing any application.
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-1">
+                    <span className="text-slate-400 block text-[11px]">Instant Print Options:</span>
+                    <p className="text-slate-300 text-[11px] mb-2">
+                      Ready-to-print Table Tents (A5), Packaging Stickers (Sheet of 6), Storefront Posters (A4), and High-Res PNG downloads.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        onClick={() => setIsAdminQrModalOpen(true)}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Open & Print Templates</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Store Hotline & Manager Details footer */}
         <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
           <div>
@@ -2609,6 +2756,12 @@ export const AdminPortal: React.FC = () => {
           formatPrice={formatPrice}
         />
       )}
+
+      {/* Scan & Order QR Code Studio Modal for Admin */}
+      <ScanToOrderModal
+        isOpen={isAdminQrModalOpen}
+        onClose={() => setIsAdminQrModalOpen(false)}
+      />
     </div>
   );
 };

@@ -9,6 +9,9 @@ import {
   Phone,
   ChevronRight,
   Lock,
+  QrCode,
+  LogOut,
+  LayoutDashboard,
 } from 'lucide-react';
 import { CATEGORIES_DATA } from '../data/mockData';
 
@@ -21,6 +24,9 @@ export const MenuDrawer: React.FC = () => {
     setIsInventoryModalOpen,
     setIsTrackingOpen,
     setIsWhatsAppOpen,
+    setIsQrModalOpen,
+    isAdminAuthenticated,
+    adminLogout,
     setCurrentView,
     ownerPhone,
   } = useStore();
@@ -153,6 +159,22 @@ export const MenuDrawer: React.FC = () => {
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
+
+              <button
+                onClick={() => {
+                  setIsMenuDrawerOpen(false);
+                  setIsQrModalOpen(true);
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 text-xs font-semibold text-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <QrCode className="w-4 h-4 text-emerald-600" />
+                  <span>Scan to Order QR Code & Standees</span>
+                </div>
+                <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                  PRINT
+                </span>
+              </button>
             </div>
           </div>
 
@@ -168,20 +190,49 @@ export const MenuDrawer: React.FC = () => {
           </div>
         </div>
 
-        {/* Footer info & Discreet Admin Login Link */}
-        <div className="p-4 pb-[max(1rem,calc(env(safe-area-inset-bottom)+0.75rem))] border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between">
+        {/* Footer info & Admin Controls */}
+        <div className="p-4 pb-[max(1rem,calc(env(safe-area-inset-bottom)+0.75rem))] border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between gap-2">
           <span>NasBaladna · Doha, Qatar</span>
-          <button
-            onClick={() => {
-              setIsMenuDrawerOpen(false);
-              setCurrentView('admin');
-            }}
-            className="text-slate-400 hover:text-emerald-800 flex items-center gap-1 font-semibold transition-colors"
-            title="Authorized Personnel Login"
-          >
-            <Lock className="w-3 h-3" />
-            <span>Staff Login</span>
-          </button>
+          
+          {isAdminAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsMenuDrawerOpen(false);
+                  setCurrentView('admin');
+                }}
+                className="text-emerald-800 hover:text-emerald-950 flex items-center gap-1 font-bold transition-colors py-1 px-2 rounded-lg bg-emerald-100/70"
+                title="Go to Admin Dashboard"
+              >
+                <LayoutDashboard className="w-3 h-3" />
+                <span>Admin</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsMenuDrawerOpen(false);
+                  adminLogout();
+                }}
+                className="text-white hover:bg-rose-700 flex items-center gap-1 font-bold transition-colors py-1 px-2.5 rounded-lg bg-rose-600 shadow-xs cursor-pointer"
+                title="Log out of Admin session"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setIsMenuDrawerOpen(false);
+                setCurrentView('admin');
+              }}
+              className="text-slate-400 hover:text-emerald-800 flex items-center gap-1 font-semibold transition-colors"
+              title="Authorized Personnel Login"
+            >
+              <Lock className="w-3 h-3" />
+              <span>Staff Login</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
