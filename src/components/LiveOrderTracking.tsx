@@ -14,8 +14,12 @@ import {
   Sparkles,
   ShieldCheck,
   ChevronRight,
+  Send,
+  BellRing,
 } from 'lucide-react';
 import { OrderStatus } from '../types';
+import { GoogleDeliveryMap } from './GoogleDeliveryMap';
+import { NotificationService } from '../services/notifications';
 
 export const LiveOrderTracking: React.FC = () => {
   const {
@@ -226,111 +230,81 @@ export const LiveOrderTracking: React.FC = () => {
                 </div>
               </div>
 
-              {/* Interactive Vector Route Map Simulation */}
-              <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-900 relative">
-                <div className="p-3 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between text-xs text-white">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                    <span className="font-mono text-emerald-400">LIVE ROUTE TELEMETRY</span>
+              {/* Live Google Maps Delivery Telemetry */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span>Live GPS Delivery Telemetry (Google Maps)</span>
                   </div>
-                  <span className="text-slate-400">{order.district}</span>
+                  <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Google Maps Platform Active
+                  </span>
                 </div>
 
-                {/* Stylized SVG Map */}
-                <div className="relative h-44 sm:h-52 w-full bg-[#0F172A] flex items-center justify-center overflow-hidden">
-                  <svg
-                    viewBox="0 0 600 240"
-                    className="w-full h-full text-slate-800"
-                    preserveAspectRatio="none"
-                  >
-                    {/* Grid lines */}
-                    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1E293B" strokeWidth="1" />
-                    </pattern>
-                    <rect width="600" height="240" fill="url(#grid)" />
+                <GoogleDeliveryMap
+                  order={order}
+                  apiKey={
+                    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+                    'AIzaSyDUSGKV8Bx619Wm4mB_u34hf8XQta9PGbY'
+                  }
+                />
+              </div>
 
-                    {/* Stylized road network */}
-                    <path
-                      d="M 50 180 Q 150 160 220 120 T 380 90 T 520 60"
-                      fill="none"
-                      stroke="#334155"
-                      strokeWidth="12"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M 50 180 Q 150 160 220 120 T 380 90 T 520 60"
-                      fill="none"
-                      stroke="#10B981"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeDasharray="6 4"
-                    />
-
-                    {/* Secondary roads */}
-                    <path
-                      d="M 120 40 L 220 120 L 260 220"
-                      fill="none"
-                      stroke="#1E293B"
-                      strokeWidth="6"
-                    />
-                    <path
-                      d="M 340 220 L 380 90 L 460 30"
-                      fill="none"
-                      stroke="#1E293B"
-                      strokeWidth="6"
-                    />
-
-                    {/* Hub Marker */}
-                    <g transform="translate(50, 180)">
-                      <circle r="14" fill="#047857" opacity="0.3" />
-                      <circle r="8" fill="#10B981" />
-                      <text x="14" y="4" fill="#A7F3D0" fontSize="10" fontWeight="bold">
-                        Central Cold Hub
-                      </text>
-                    </g>
-
-                    {/* Destination Marker */}
-                    <g transform="translate(520, 60)">
-                      <circle r="14" fill="#EF4444" opacity="0.3" />
-                      <circle r="8" fill="#EF4444" />
-                      <text x="-95" y="4" fill="#FECACA" fontSize="10" fontWeight="bold">
-                        Your Doorstep
-                      </text>
-                    </g>
-
-                    {/* Moving Delivery Vehicle */}
-                    <g
-                      transform={
-                        order.status === 'confirmed'
-                          ? 'translate(60, 178)'
-                          : order.status === 'packing'
-                          ? 'translate(140, 155)'
-                          : order.status === 'on_the_way'
-                          ? 'translate(340, 95)'
-                          : 'translate(520, 60)'
-                      }
-                      className="transition-transform duration-1000"
-                    >
-                      <circle r="16" fill="#10B981" opacity="0.4" className="animate-ping" />
-                      <rect
-                        x="-10"
-                        y="-10"
-                        width="20"
-                        height="20"
-                        rx="6"
-                        fill="#FFFFFF"
-                        stroke="#047857"
-                        strokeWidth="2"
-                      />
-                      <circle cx="0" cy="0" r="4" fill="#047857" />
-                    </g>
-                  </svg>
-
-                  {/* Destination overlay badge */}
-                  <div className="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="truncate max-w-[200px] sm:max-w-xs">{order.address}</span>
+              {/* Automated WhatsApp & SMS Notifications Action Bar */}
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50/70 border border-emerald-200/80 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <BellRing className="w-4 h-4 text-emerald-700" />
+                    <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                      Automated Order Notifications
+                    </span>
                   </div>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full">
+                    Auto-Dispatched to {order.phone}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600">
+                  Instant receipt and live courier telemetry updates sent straight to the customer's phone via WhatsApp and SMS text message.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <a
+                    href={NotificationService.getWhatsAppUrl(
+                      order.phone,
+                      NotificationService.buildWhatsAppMessage(order)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-[#25D366] hover:bg-[#20bd5a] rounded-xl shadow-xs transition-transform active:scale-95"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                    <span>Open in WhatsApp</span>
+                  </a>
+
+                  <a
+                    href={NotificationService.getSmsUrl(
+                      order.phone,
+                      NotificationService.buildSmsMessage(order)
+                    )}
+                    className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-2xs transition-transform active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Send SMS Message</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      NotificationService.sendAutomatedNotification(order, 'whatsapp', order.status);
+                      NotificationService.sendAutomatedNotification(order, 'sms', order.status);
+                      showToast(`Test automated alert sent to ${order.phone} via WhatsApp & SMS!`);
+                    }}
+                    className="px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200/80 rounded-xl transition-colors"
+                  >
+                    Resend Alert Now
+                  </button>
                 </div>
               </div>
 

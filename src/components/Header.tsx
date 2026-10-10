@@ -32,21 +32,26 @@ export const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-      {/* Top micro announcement bar */}
-      <div className="bg-[#14532D] text-white text-[10px] sm:text-[11px] font-medium py-1.5 px-3 sm:px-4 overflow-hidden">
+      {/* Top micro announcement bar matching IMG_5631 */}
+      <div className="bg-[#14532D] text-white text-[10px] sm:text-[11px] font-medium py-1.5 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="truncate">NasBaladna Farm Fresh · Express Delivery</span>
+          <div className="flex items-start sm:items-center gap-1.5 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 mt-1 sm:mt-0" />
+            <div className="leading-tight">
+              <span className="block sm:inline">NasBaladna Farm Harvest · Express </span>
+              <span className="text-emerald-100 sm:text-white">Delivery across Qatar</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 text-emerald-100 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 text-emerald-100 shrink-0 text-right">
             <a
               href={`tel:${ownerPhone}`}
-              className="flex items-center gap-1 hover:text-white font-mono font-medium text-[10px] sm:text-[11px]"
+              className="flex items-start sm:items-center gap-1.5 hover:text-white font-mono font-medium text-[10px] sm:text-[11px] text-right"
             >
-              <PhoneCall className="w-3 h-3 text-emerald-300 shrink-0" />
-              <span className="hidden xs:inline">Hotline:</span>
-              <span>{ownerPhone}</span>
+              <PhoneCall className="w-3.5 h-3.5 text-emerald-300 shrink-0 mt-0.5 sm:mt-0" />
+              <div className="leading-tight text-right">
+                <span className="block sm:inline text-emerald-200 sm:text-white">Orders Hotline: </span>
+                <span className="text-white font-bold">{ownerPhone}</span>
+              </div>
             </a>
             <span aria-hidden="true" className="hidden sm:inline">·</span>
             <span className="hidden md:flex items-center gap-1">
@@ -59,7 +64,7 @@ export const Header: React.FC = () => {
 
       {/* Main Top Bar: 3-Zone Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
-        {/* Zone 1: NasBaladna Brand Official Logo matching IMG_5623 */}
+        {/* Zone 1: NasBaladna Brand Official Logo matching IMG_5631 */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMenuDrawerOpen(true)}
@@ -74,11 +79,11 @@ export const Header: React.FC = () => {
             onClick={(e) => {
               e.preventDefault();
               setActiveMobileTab('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex items-center text-decoration-none group transition-transform hover:scale-[1.01]"
           >
-            <NasBaladnaLogo size="sm" showTagline={false} className="sm:hidden" />
-            <NasBaladnaLogo size="md" showTagline={true} className="hidden sm:inline-flex" />
+            <NasBaladnaLogo size="responsive" showTagline={true} />
           </a>
         </div>
 

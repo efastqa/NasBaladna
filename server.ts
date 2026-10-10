@@ -770,9 +770,12 @@ async function startServer() {
   // ===================== STATIC / VITE INTEGRATION =====================
 
   if (!isProd) {
-    // In dev: mount Vite middlewares
+    // In dev: mount Vite middlewares with hmr: false to avoid websocket errors in AI Studio iframe
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

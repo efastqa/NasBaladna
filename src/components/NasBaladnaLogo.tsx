@@ -2,7 +2,7 @@ import React from 'react';
 
 interface LogoProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'responsive';
   showTagline?: boolean;
 }
 
@@ -13,13 +13,14 @@ export const NasBaladnaLogo: React.FC<LogoProps> = ({
 }) => {
   // Height and scale configurations
   const dimensions = {
-    sm: { height: 34, iconSize: 34, textClass: 'text-base', subClass: 'text-[9px]' },
-    md: { height: 46, iconSize: 46, textClass: 'text-xl', subClass: 'text-[11px]' },
+    sm: { height: 34, iconSize: 34, textClass: 'text-base', subClass: 'text-[8.5px]' },
+    md: { height: 44, iconSize: 42, textClass: 'text-xl', subClass: 'text-[10px]' },
     lg: { height: 72, iconSize: 72, textClass: 'text-3xl', subClass: 'text-xs' },
+    responsive: { height: 40, iconSize: 40, textClass: 'text-lg sm:text-xl', subClass: 'text-[8.5px] sm:text-[9.5px]' },
   }[size];
 
   return (
-    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
+    <div className={`inline-flex items-center gap-2 select-none ${className}`}>
       {/* SVG Icon matching IMG_5623: Stylized N + Shopping Cart + Leaf + Speed lines */}
       <svg
         width={dimensions.iconSize}
@@ -27,7 +28,7 @@ export const NasBaladnaLogo: React.FC<LogoProps> = ({
         viewBox="0 0 200 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0 drop-shadow-xs"
+        className="shrink-0 drop-shadow-xs w-9 h-9 sm:w-10 sm:h-10"
       >
         <defs>
           {/* Main N gradient: bright leaf green to rich emerald */}

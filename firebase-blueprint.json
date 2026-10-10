@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Produce or grocery item available in NasBaladna farm catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product identifier" },
+        "name": { "type": "string", "description": "Product display name" },
+        "category": { "type": "string", "description": "Product category key" },
+        "brand": { "type": "string", "description": "Brand name" },
+        "sku": { "type": "string", "description": "Stock Keeping Unit code" },
+        "basePrice": { "type": "number", "description": "Retail price per base unit" },
+        "baseWeight": { "type": "string", "description": "Portion weight" },
+        "stock": { "type": "number", "description": "Live inventory units remaining" },
+        "image": { "type": "string", "description": "Product image URL" },
+        "farm": { "type": "string", "description": "Source greenhouse or local farm" },
+        "description": { "type": "string", "description": "Product description" },
+        "wholesalePrice": { "type": "number", "description": "B2B crate wholesale price" },
+        "wholesaleUnit": { "type": "string", "description": "B2B crate packaging unit" },
+        "organic": { "type": "boolean", "description": "Whether pesticide-free organic certified" },
+        "isNearExpiry": { "type": "boolean", "description": "Whether flagged for near expiry discount" }
+      },
+      "required": ["id", "name", "category", "basePrice", "stock"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer home delivery order with telemetry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique order ID" },
+        "orderNumber": { "type": "string", "description": "Human readable order number" },
+        "customerName": { "type": "string", "description": "Customer full name" },
+        "phone": { "type": "string", "description": "Contact phone for SMS and WhatsApp" },
+        "address": { "type": "string", "description": "Delivery street address" },
+        "district": { "type": "string", "description": "Municipality or district in Qatar" },
+        "total": { "type": "number", "description": "Total payment amount" },
+        "status": { "type": "string", "description": "Current order progress status" },
+        "paymentMethod": { "type": "string", "description": "Payment method used" },
+        "createdAt": { "type": "string", "description": "Timestamp of order creation" }
+      },
+      "required": ["id", "customerName", "phone", "total", "status"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Category identifier" },
+        "name": { "type": "string", "description": "Category title" },
+        "image": { "type": "string", "description": "Category showcase photo URL" },
+        "itemCount": { "type": "number", "description": "Total count of active varieties" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Farm produce and grocery catalog collection"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders and live home delivery tracking records"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Storefront product category taxonomy"
+    }
+  }
+}

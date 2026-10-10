@@ -19,6 +19,7 @@ import {
   DEFAULT_DELIVERY_DRIVER,
 } from '../data/mockData';
 import { api } from '../services/api';
+import { NotificationService } from '../services/notifications';
 
 interface StoreContextType {
   products: Product[];
@@ -483,14 +484,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Unauthorized: Admin access required');
       return false;
     }
+    const targetOrder = ordersHistory.find((o) => o.id === orderId);
     setOrdersHistory((prev) =>
       prev.map((ord) => (ord.id === orderId ? { ...ord, status } : ord))
     );
     if (activeOrder && activeOrder.id === orderId) {
       setActiveOrder((prev) => (prev ? { ...prev, status } : null));
     }
+    if (targetOrder) {
+      const updated = { ...targetOrder, status };
+      NotificationService.sendAutomatedNotification(updated, 'whatsapp', status);
+      NotificationService.sendAutomatedNotification(updated, 'sms', status);
+    }
     api.updateOrderStatus(orderId, status).catch((e) => console.warn('API updateOrderStatus:', e));
-    showToast(`Order status updated to ${status}`);
+    showToast(`Order status updated to ${status} & automated alerts sent`);
     return true;
   };
 
@@ -745,10 +752,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveOrder(newOrder);
     setOrdersHistory((prev) => [newOrder, ...prev]);
     api.createOrder(newOrder).catch((e) => console.warn('API createOrder:', e));
+
+    // Automated dispatch of WhatsApp & SMS notifications
+    NotificationService.sendAutomatedNotification(newOrder, 'whatsapp', 'confirmed');
+    NotificationService.sendAutomatedNotification(newOrder, 'sms', 'confirmed');
+
     clearCart();
     setIsCheckoutOpen(false);
     setIsTrackingOpen(true);
-    showToast(`Order #${orderNumber} Confirmed! Live delivery tracking started.`);
+    showToast(`Order #${orderNumber} Confirmed! Automated WhatsApp & SMS notifications dispatched.`);
 
     return newOrder;
   };
@@ -761,16 +773,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setActiveOrder((prev) => {
         if (!prev) return null;
         if (prev.status === 'confirmed') {
-          return { ...prev, status: 'packing', estimatedMinutes: 24 };
+          const updated = { ...prev, status: 'packing' as const, estimatedMinutes: 24 };
+          NotificationService.sendAutomatedNotification(updated, 'whatsapp', 'packing');
+          return updated;
         }
         if (prev.status === 'packing') {
-          return { ...prev, status: 'on_the_way', estimatedMinutes: 16 };
+          const updated = { ...prev, status: 'on_the_way' as const, estimatedMinutes: 16 };
+          NotificationService.sendAutomatedNotification(updated, 'whatsapp', 'on_the_way');
+          NotificationService.sendAutomatedNotification(updated, 'sms', 'on_the_way');
+          return updated;
         }
         if (prev.status === 'on_the_way') {
           if (prev.estimatedMinutes > 2) {
             return { ...prev, estimatedMinutes: prev.estimatedMinutes - 2 };
           }
-          return { ...prev, status: 'delivered', estimatedMinutes: 0 };
+          const updated = { ...prev, status: 'delivered' as const, estimatedMinutes: 0 };
+          NotificationService.sendAutomatedNotification(updated, 'whatsapp', 'delivered');
+          NotificationService.sendAutomatedNotification(updated, 'sms', 'delivered');
+          return updated;
         }
         return prev;
       });

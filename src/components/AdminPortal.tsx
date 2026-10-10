@@ -40,8 +40,10 @@ import {
   HelpCircle,
   RotateCcw,
   FileImage,
+  BellRing,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus } from '../types';
+import { NotificationService } from '../services/notifications';
 import {
   categoryVegImg,
   categoryFruitsImg,
@@ -2180,23 +2182,53 @@ export const AdminPortal: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Status changer buttons */}
-                      <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                        {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map(
-                          (st) => (
-                            <button
-                              key={st}
-                              onClick={() => updateOrderStatus(ord.id, st)}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-bold capitalize transition-colors ${
-                                ord.status === st
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'text-slate-400 hover:text-white'
-                              }`}
-                            >
-                              {st === 'on_the_way' ? 'On Route' : st}
-                            </button>
-                          )
-                        )}
+                      {/* Status changer buttons & Direct Notification trigger */}
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                          {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map(
+                            (st) => (
+                              <button
+                                key={st}
+                                onClick={() => updateOrderStatus(ord.id, st)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold capitalize transition-colors ${
+                                  ord.status === st
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                {st === 'on_the_way' ? 'On Route' : st}
+                              </button>
+                            )
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={NotificationService.getWhatsAppUrl(
+                              ord.phone,
+                              NotificationService.buildWhatsAppMessage(ord)
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                            title="Send WhatsApp Order Update"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                            <span className="hidden xl:inline">WhatsApp</span>
+                          </a>
+
+                          <a
+                            href={NotificationService.getSmsUrl(
+                              ord.phone,
+                              NotificationService.buildSmsMessage(ord)
+                            )}
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                            title="Send SMS Order Update"
+                          >
+                            <Send className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="hidden xl:inline">SMS</span>
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
