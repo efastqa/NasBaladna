@@ -622,15 +622,15 @@ export const AdminPortal: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Top Admin Navbar */}
-      <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 px-4 sm:px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-xl bg-white shadow-xs">
+      <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 px-3 sm:px-6 py-2.5 sm:py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-1 sm:p-1.5 rounded-xl bg-white shadow-xs shrink-0">
               <NasBaladnaLogo size="sm" showTagline={false} />
             </div>
-            <div>
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
-                ADMIN CONSOLE
+            <div className="shrink min-w-0">
+              <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-800 inline-block">
+                ADMIN
               </span>
               <span className="hidden sm:inline-block ml-2 text-xs text-slate-400">
                 Logged in as <strong className="text-slate-200">{adminUser?.name || 'Admin'}</strong>
@@ -638,10 +638,10 @@ export const AdminPortal: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <button
               onClick={() => setActiveTab('security')}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 ${
                 activeTab === 'security'
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
@@ -649,26 +649,25 @@ export const AdminPortal: React.FC = () => {
               title="Admin Password & Credentials Settings"
             >
               <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Change Password</span>
-              <span className="sm:hidden">Password</span>
+              <span className="hidden md:inline">Password</span>
             </button>
 
             <button
               onClick={() => setCurrentView('customer')}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-colors shrink-0"
+              title="Return to Customer Store"
             >
               <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Customer Store</span>
-              <span className="sm:hidden">Store</span>
+              <span className="hidden md:inline">Store</span>
             </button>
 
             <button
               onClick={adminLogout}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-xs font-semibold text-rose-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-xs font-bold text-white shadow-xs shrink-0 transition-all cursor-pointer"
               title="Log out of admin console"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Logout</span>
+              <LogOut className="w-3.5 h-3.5 text-white" />
+              <span>Logout</span>
             </button>
           </div>
         </div>
@@ -772,6 +771,15 @@ export const AdminPortal: React.FC = () => {
           >
             <KeyRound className="w-4 h-4 text-amber-300" />
             <span>Password & Security</span>
+          </button>
+
+          <button
+            onClick={adminLogout}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold whitespace-nowrap text-rose-400 hover:text-white hover:bg-rose-950/80 border border-rose-900/60 ml-auto transition-all cursor-pointer"
+            title="Log out of Admin Console"
+          >
+            <LogOut className="w-4 h-4 text-rose-400" />
+            <span>Log Out</span>
           </button>
         </div>
 
@@ -2571,15 +2579,24 @@ export const AdminPortal: React.FC = () => {
           <div>
             <span>NasBaladna Store Hotline: <strong className="text-white font-mono">{ownerPhone}</strong> (77315415)</span>
           </div>
-          <a
-            href={ownerWhatsAppUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 text-emerald-400 hover:underline"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            <span>Launch WhatsApp Support (+974 77315415)</span>
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href={ownerWhatsAppUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-emerald-400 hover:underline"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>Launch WhatsApp Support (+974 77315415)</span>
+            </a>
+            <button
+              onClick={adminLogout}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 font-semibold text-[11px] transition-colors"
+            >
+              <LogOut className="w-3 h-3 text-rose-400" />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
       </div>
 
