@@ -20,6 +20,7 @@ import {
 import { OrderStatus } from '../types';
 import { GoogleDeliveryMap } from './GoogleDeliveryMap';
 import { NotificationService } from '../services/notifications';
+import { OrderReceiptModal } from './OrderReceiptModal';
 
 export const LiveOrderTracking: React.FC = () => {
   const {
@@ -35,8 +36,8 @@ export const LiveOrderTracking: React.FC = () => {
     ownerPhone,
   } = useStore();
 
-
   const [simulatedCalling, setSimulatedCalling] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   if (!isTrackingOpen) return null;
 
@@ -52,7 +53,7 @@ export const LiveOrderTracking: React.FC = () => {
   };
 
   const handlePrintReceipt = () => {
-    window.print();
+    setIsReceiptOpen(true);
   };
 
   const handleReorder = () => {
@@ -455,6 +456,16 @@ export const LiveOrderTracking: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Official Tax Invoice & Order Receipt Modal */}
+      {order && (
+        <OrderReceiptModal
+          order={order}
+          isOpen={isReceiptOpen}
+          onClose={() => setIsReceiptOpen(false)}
+          formatPrice={formatPrice}
+        />
+      )}
     </div>
   );
 };
