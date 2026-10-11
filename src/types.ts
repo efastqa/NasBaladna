@@ -85,6 +85,8 @@ export interface CartItem {
 }
 
 export type OrderStatus = 'confirmed' | 'packing' | 'on_the_way' | 'delivered';
+export type DeliveryServiceType = 'express' | 'standard' | 'eco_green';
+export type DropoffPreference = 'hand_to_me' | 'doorstep' | 'security';
 
 export interface Order {
   id: string;
@@ -104,6 +106,14 @@ export interface Order {
   paymentMethod: 'card' | 'apple_pay' | 'cod';
   paymentStatus: 'paid' | 'pending';
   estimatedMinutes: number;
+  coordinates?: { lat: number; lng: number };
+  googleMapsUrl?: string;
+  deliveryNotes?: string;
+  isExpress?: boolean;
+  serviceType?: DeliveryServiceType;
+  dropoffPreference?: DropoffPreference;
+  doorbellPreference?: 'ring' | 'silent';
+  bluePlateInfo?: { zone: string; street: string; building: string };
   courier: {
     name: string;
     phone: string;

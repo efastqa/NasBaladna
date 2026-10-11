@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import { NasBaladnaLogo } from './NasBaladnaLogo';
 import {
@@ -12,6 +12,8 @@ import {
   LayoutDashboard,
   QrCode,
   LogOut,
+  Truck,
+  Zap,
 } from 'lucide-react';
 import { CURRENCY_RATES } from '../data/mockData';
 import { CurrencyType } from '../types';
@@ -35,16 +37,77 @@ export const Header: React.FC = () => {
     unreadOrdersCount,
   } = useStore();
 
+  const [deliveryCountdown, setDeliveryCountdown] = useState<{
+    slotName: string;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  }>({ slotName: 'Morning Slot (8 AM - 11 AM)', hours: 1, minutes: 42, seconds: 15 });
+
+  useEffect(() => {
+    const calculateCountdown = () => {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentSeconds = now.getSeconds();
+
+      let targetHour = 10;
+      let targetMinute = 30;
+      let slot = 'Morning Slot (8 AM - 11 AM)';
+
+      if (currentHours < 10 || (currentHours === 10 && currentMinutes < 30)) {
+        targetHour = 10;
+        targetMinute = 30;
+        slot = 'Morning Slot (8 AM - 11 AM)';
+      } else if (currentHours < 15 || (currentHours === 15 && currentMinutes < 30)) {
+        targetHour = 15;
+        targetMinute = 30;
+        slot = 'Afternoon Slot (2 PM - 5 PM)';
+      } else if (currentHours < 19 || (currentHours === 19 && currentMinutes < 30)) {
+        targetHour = 19;
+        targetMinute = 30;
+        slot = 'Evening Slot (6 PM - 9 PM)';
+      } else {
+        targetHour = 24 + 10;
+        targetMinute = 30;
+        slot = "Tomorrow's Morning Slot (8 AM - 11 AM)";
+      }
+
+      const totalTargetSeconds = targetHour * 3600 + targetMinute * 60;
+      const totalCurrentSeconds = currentHours * 3600 + currentMinutes * 60 + currentSeconds;
+      const diffSeconds = Math.max(0, totalTargetSeconds - totalCurrentSeconds);
+
+      const h = Math.floor(diffSeconds / 3600);
+      const m = Math.floor((diffSeconds % 3600) / 60);
+      const s = diffSeconds % 60;
+
+      setDeliveryCountdown({ slotName: slot, hours: h, minutes: m, seconds: s });
+    };
+
+    calculateCountdown();
+    const interval = setInterval(calculateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-      {/* Top micro announcement bar matching IMG_5631 */}
+      {/* Top micro announcement bar with dynamic live delivery cutoff countdown */}
       <div className="bg-[#14532D] text-white text-[10px] sm:text-[11px] font-medium py-1.5 px-3 sm:px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-start sm:items-center gap-1.5 min-w-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 mt-1 sm:mt-0" />
-            <div className="leading-tight">
-              <span className="block sm:inline">NasBaladna Farm Harvest · Express </span>
-              <span className="text-emerald-100 sm:text-white">Delivery across Qatar</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="hidden sm:inline font-bold flex items-center gap-1">
+                <Truck className="w-3 h-3 text-emerald-300 inline" />
+                <span>Qatar Cold-Chain Dispatch:</span>
+              </span>
+              <span className="text-emerald-100 truncate">
+                Order within{' '}
+                <span className="font-mono font-bold text-amber-300">
+                  {deliveryCountdown.hours}h {deliveryCountdown.minutes}m {String(deliveryCountdown.seconds).padStart(2, '0')}s
+                </span>{' '}
+                for <strong className="text-white font-bold">{deliveryCountdown.slotName}</strong>
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 text-emerald-100 shrink-0 text-right">
@@ -61,7 +124,7 @@ export const Header: React.FC = () => {
             <span aria-hidden="true" className="hidden sm:inline">·</span>
             <span className="hidden md:flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-300" />
-              <span>100% Organic & Pesticide-Free</span>
+              <span>Free Delivery &gt; QAR 50</span>
             </span>
           </div>
         </div>

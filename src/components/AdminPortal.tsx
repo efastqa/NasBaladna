@@ -52,11 +52,17 @@ import {
   CheckCheck,
   Zap,
   Calendar,
+  Navigation,
+  Compass,
+  Leaf,
+  Share2,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
 import { OrderReceiptModal } from './OrderReceiptModal';
 import { ScanToOrderModal } from './ScanToOrderModal';
+import { DriverManifestModal } from './DriverManifestModal';
+import { getDistrictCoordinates } from '../constants/locations';
 import {
   categoryVegImg,
   categoryFruitsImg,
@@ -121,6 +127,7 @@ export const AdminPortal: React.FC = () => {
     'products' | 'add_product' | 'categories' | 'delivery_driver' | 'bulk' | 'orders' | 'inventory' | 'security' | 'qr_studio'
   >('products');
   const [isAdminQrModalOpen, setIsAdminQrModalOpen] = useState(false);
+  const [isDriverManifestModalOpen, setIsDriverManifestModalOpen] = useState(false);
 
   // Password Management Form State
   const [currentPassInput, setCurrentPassInput] = useState('');
@@ -187,6 +194,118 @@ export const AdminPortal: React.FC = () => {
 
     const targetUrl = NotificationService.getWhatsAppUrl(ownerPhone, text);
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Export Driver Manifest CSV
+  const handleExportDriverManifestCsv = () => {
+    const headers = [
+      'StopSequence',
+      'OrderNumber',
+      'CustomerName',
+      'Phone',
+      'DistrictZone',
+      'StreetAddress',
+      'Latitude',
+      'Longitude',
+      'GoogleMapsLink',
+      'DeliverySlot',
+      'ServiceLevel',
+      'DropoffPreference',
+      'DoorbellNotice',
+      'PaymentMethod',
+      'PaymentStatus',
+      'TotalPayable',
+      'DeliveryNotes',
+      'ItemsChecklist',
+      'CurrentStatus',
+    ];
+
+    const rows = ordersHistory.map((ord, idx) => {
+      const coords = ord.coordinates || getDistrictCoordinates(ord.district);
+      const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+      const itemsList = ord.items
+        .map((i) => `${i.product.name} (${i.selectedWeight}) x${i.quantity}`)
+        .join('; ');
+
+      const serviceLevel = ord.isExpress || ord.serviceType === 'express'
+        ? 'Express 60-Min'
+        : ord.serviceType === 'eco_green'
+        ? 'Eco-Green Consolidated'
+        : 'Scheduled Standard';
+
+      const dropoff = ord.dropoffPreference === 'doorstep'
+        ? 'Doorstep Drop'
+        : ord.dropoffPreference === 'security'
+        ? 'Security / Concierge'
+        : 'Hand to Customer';
+
+      const doorbell = ord.doorbellPreference === 'silent' ? 'Silent Delivery (No Bell)' : 'Ring Bell / Knock';
+      const payment = ord.paymentMethod === 'cod' ? `COD (${ord.total} QAR)` : `Prepaid Online (${ord.total} QAR)`;
+
+      return [
+        idx + 1,
+        `"${ord.orderNumber}"`,
+        `"${ord.customerName.replace(/"/g, '""')}"`,
+        `"${ord.phone}"`,
+        `"${ord.district.replace(/"/g, '""')}"`,
+        `"${ord.address.replace(/"/g, '""')}"`,
+        coords.lat,
+        coords.lng,
+        `"${navUrl}"`,
+        `"${ord.deliverySlot.replace(/"/g, '""')}"`,
+        `"${serviceLevel}"`,
+        `"${dropoff}"`,
+        `"${doorbell}"`,
+        `"${ord.paymentMethod}"`,
+        `"${payment}"`,
+        ord.total,
+        `"${(ord.deliveryNotes || '').replace(/"/g, '""')}"`,
+        `"${itemsList.replace(/"/g, '""')}"`,
+        `"${ord.status}"`,
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `nasbaladna_driver_manifest_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${ordersHistory.length} orders to Driver Manifest CSV!`);
+  };
+
+  // Dispatch full route manifest to Driver WhatsApp
+  const handleDispatchDriverFleetWhatsApp = () => {
+    let msg = `🚚 *NASBALADNA ROUTE DISPATCH MANIFEST*\n`;
+    msg += `Driver: ${deliveryDriver.name} (${deliveryDriver.phone})\n`;
+    msg += `Vehicle: ${deliveryDriver.vehicle} | Plate: ${deliveryDriver.plateNumber}\n`;
+    msg += `Total Orders: ${ordersHistory.length}\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+    ordersHistory.forEach((ord, idx) => {
+      const isExpress = ord.isExpress || ord.serviceType === 'express';
+      const coords = ord.coordinates || getDistrictCoordinates(ord.district);
+      const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+
+      msg += `Stop #${idx + 1}: *${ord.orderNumber}* ${isExpress ? '⚡ [EXPRESS PRIORITY]' : ''}\n`;
+      msg += `👤 Recipient: ${ord.customerName} (${ord.phone})\n`;
+      msg += `📍 Area: ${ord.district} - ${ord.address}\n`;
+      if (ord.deliveryNotes) msg += `📝 Notes: ${ord.deliveryNotes}\n`;
+      if (ord.dropoffPreference === 'doorstep') msg += `🚪 Preference: Leave at Doorstep\n`;
+      if (ord.doorbellPreference === 'silent') msg += `🔕 Do NOT ring bell\n`;
+      msg += `⏰ Slot: ${ord.deliverySlot}\n`;
+      msg += `💵 Total: ${ord.total} QAR (${ord.paymentMethod === 'cod' ? '⚠️ CASH ON DELIVERY' : '✅ PAID ONLINE'})\n`;
+      msg += `🗺️ Turn-by-Turn GPS Navigation: ${navUrl}\n\n`;
+    });
+
+    const cleanPhone = (deliveryDriver.dispatchWhatsApp || deliveryDriver.phone).replace(/[^0-9]/g, '');
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    showToast('Launched WhatsApp with full driver route manifest!');
   };
 
   // Delivery Driver Form State
@@ -3590,6 +3709,61 @@ export const AdminPortal: React.FC = () => {
               </div>
             </div>
 
+            {/* Delivery & Fleet Fulfillment Quick Dispatch Hub */}
+            <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-800/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">Fleet Dispatch & Driver Route Manifest</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-700/60 text-[10px] font-mono font-bold">
+                      {deliveryDriver.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-slate-400 text-[11px] mt-0.5">
+                    Assigned Courier: <strong className="text-white">{deliveryDriver.name}</strong> · {deliveryDriver.vehicle} ({deliveryDriver.plateNumber})
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {/* Launch Fleet Run-Sheet Modal */}
+                <button
+                  type="button"
+                  onClick={() => setIsDriverManifestModalOpen(true)}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-1.5 transition-transform active:scale-95 shadow-md"
+                  title="Open live interactive driver manifest run sheet"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>Open Driver Run-Sheet ({ordersHistory.length} Stops)</span>
+                </button>
+
+                {/* Export Driver CSV */}
+                <button
+                  type="button"
+                  onClick={handleExportDriverManifestCsv}
+                  className="px-3 py-2 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700 rounded-xl font-semibold flex items-center gap-1.5 transition-colors"
+                  title="Export clean driver manifest CSV with GPS links and item checklists"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Export Manifest (CSV)</span>
+                </button>
+
+                {/* Send Run Sheet to Driver WhatsApp */}
+                <button
+                  type="button"
+                  onClick={handleDispatchDriverFleetWhatsApp}
+                  className="px-3 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl font-bold flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm"
+                  title="Send complete formatted delivery route to driver on WhatsApp"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                  <span>WhatsApp Driver Run</span>
+                </button>
+              </div>
+            </div>
+
             {/* Filter Pills */}
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
               <button
@@ -3653,6 +3827,10 @@ export const AdminPortal: React.FC = () => {
                   })
                   .map((ord, idx) => {
                     const isNewOrder = idx < unreadOrdersCount || ord.id === latestReceivedOrder?.id;
+                    const coords = ord.coordinates || getDistrictCoordinates(ord.district);
+                    const navUrl = ord.googleMapsUrl || `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
+                    const isExpress = ord.isExpress || ord.serviceType === 'express';
+                    const isEco = ord.serviceType === 'eco_green';
 
                     return (
                       <div
@@ -3660,10 +3838,12 @@ export const AdminPortal: React.FC = () => {
                         className={`p-4 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs transition-all ${
                           isNewOrder
                             ? 'bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/80 ring-2 ring-rose-500/20 shadow-lg'
+                            : isExpress
+                            ? 'bg-gradient-to-r from-amber-950/20 via-slate-900 to-slate-900 border-amber-500/40 ring-1 ring-amber-500/20'
                             : 'bg-slate-900 border-slate-800'
                         }`}
                       >
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-white text-sm">#{ord.orderNumber}</span>
 
@@ -3671,6 +3851,20 @@ export const AdminPortal: React.FC = () => {
                               <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-600 text-white animate-pulse flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
                                 <span>NEW ORDER</span>
+                              </span>
+                            )}
+
+                            {isExpress && (
+                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                                <Zap className="w-3 h-3 fill-current" />
+                                <span>EXPRESS 60-MIN</span>
+                              </span>
+                            )}
+
+                            {isEco && (
+                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                                <Leaf className="w-3 h-3" />
+                                <span>ECO BATCH</span>
                               </span>
                             )}
 
@@ -3702,6 +3896,35 @@ export const AdminPortal: React.FC = () => {
 
                           <div className="text-slate-400">
                             <strong>Address:</strong> {ord.address} · <strong>Slot:</strong> {ord.deliverySlot}
+                            {ord.bluePlateInfo && (
+                              <span className="block text-sky-400 font-mono text-[11px] mt-0.5">
+                                Qatar Blue Plate: Zone {ord.bluePlateInfo.zone} · Street {ord.bluePlateInfo.street} · Building {ord.bluePlateInfo.building}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Dropoff Preferences & Notes */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
+                            {ord.dropoffPreference === 'doorstep' && (
+                              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
+                                🚪 Leave at Doorstep
+                              </span>
+                            )}
+                            {ord.dropoffPreference === 'security' && (
+                              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
+                                🏢 Leave with Security
+                              </span>
+                            )}
+                            {ord.doorbellPreference === 'silent' && (
+                              <span className="px-2 py-0.5 rounded bg-rose-950/70 text-rose-300 border border-rose-800">
+                                🔕 Silent Drop (No Bell)
+                              </span>
+                            )}
+                            {ord.deliveryNotes && (
+                              <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800 truncate max-w-sm">
+                                📝 {ord.deliveryNotes}
+                              </span>
+                            )}
                           </div>
 
                           <div className="text-slate-300 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
@@ -3740,17 +3963,29 @@ export const AdminPortal: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Direct notification triggers */}
+                            {/* Direct notification & routing triggers */}
                             <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Direct Google Maps Turn-by-Turn Nav Link */}
+                              <a
+                                href={navUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                title="Open turn-by-turn navigation in Google Maps"
+                              >
+                                <Navigation className="w-3.5 h-3.5" />
+                                <span>GPS Route</span>
+                              </a>
+
                               {/* Send to Admin's own WhatsApp (+974 7731 5415) */}
                               <button
                                 type="button"
                                 onClick={() => sendAdminOrderAlertWhatsApp(ord)}
-                                className="p-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
                                 title="Send order invoice & packaging details to Admin WhatsApp (+974 7731 5415)"
                               >
-                                <MessageCircle className="w-3.5 h-3.5 fill-current text-white" />
-                                <span>Admin WhatsApp</span>
+                                <MessageCircle className="w-3.5 h-3.5 fill-current text-emerald-400" />
+                                <span className="hidden xl:inline">Alert</span>
                               </button>
 
                               {/* WhatsApp Customer */}
@@ -4276,6 +4511,17 @@ export const AdminPortal: React.FC = () => {
       <ScanToOrderModal
         isOpen={isAdminQrModalOpen}
         onClose={() => setIsAdminQrModalOpen(false)}
+      />
+
+      {/* Driver Delivery Route Manifest & Fleet Dispatch Modal */}
+      <DriverManifestModal
+        isOpen={isDriverManifestModalOpen}
+        onClose={() => setIsDriverManifestModalOpen(false)}
+        orders={ordersHistory}
+        updateOrderStatus={updateOrderStatus}
+        formatPrice={formatPrice}
+        driverInfo={deliveryDriver}
+        showToast={showToast}
       />
     </div>
   );

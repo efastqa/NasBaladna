@@ -10,6 +10,8 @@ import {
   CustomerTier,
   CategoryItem,
   DeliveryDriverConfig,
+  DeliveryServiceType,
+  DropoffPreference,
 } from '../types';
 import {
   INITIAL_PRODUCTS,
@@ -104,13 +106,21 @@ interface StoreContextType {
   setCurrentView: (view: 'customer' | 'admin') => void;
 
   createOrder: (orderPayload: {
-
     customerName: string;
     phone: string;
     address: string;
     district: string;
     deliverySlot: string;
     paymentMethod: 'card' | 'apple_pay' | 'cod';
+    coordinates?: { lat: number; lng: number };
+    googleMapsUrl?: string;
+    deliveryNotes?: string;
+    isExpress?: boolean;
+    serviceType?: DeliveryServiceType;
+    dropoffPreference?: DropoffPreference;
+    doorbellPreference?: 'ring' | 'silent';
+    bluePlateInfo?: { zone: string; street: string; building: string };
+    customDeliveryFee?: number;
   }) => Order;
 
   // Admin New Order Notification Alerting
@@ -740,6 +750,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     district,
     deliverySlot,
     paymentMethod,
+    coordinates,
+    googleMapsUrl,
+    deliveryNotes,
+    isExpress = false,
+    serviceType = 'standard',
+    dropoffPreference = 'hand_to_me',
+    doorbellPreference = 'ring',
+    bluePlateInfo,
+    customDeliveryFee,
   }: {
     customerName: string;
     phone: string;
@@ -747,8 +766,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     district: string;
     deliverySlot: string;
     paymentMethod: 'card' | 'apple_pay' | 'cod';
+    coordinates?: { lat: number; lng: number };
+    googleMapsUrl?: string;
+    deliveryNotes?: string;
+    isExpress?: boolean;
+    serviceType?: DeliveryServiceType;
+    dropoffPreference?: DropoffPreference;
+    doorbellPreference?: 'ring' | 'silent';
+    bluePlateInfo?: { zone: string; street: string; building: string };
+    customDeliveryFee?: number;
   }): Order => {
-    const deliveryFee = cartTotal >= 50 ? 0 : 5.0;
+    let baseDeliveryFee = cartTotal >= 50 ? 0 : 5.0;
+    if (serviceType === 'eco_green' && baseDeliveryFee > 0) {
+      baseDeliveryFee = 2.0; // Eco-green discounted delivery
+    }
+    const expressFee = isExpress || serviceType === 'express' ? 15.0 : 0;
+    const deliveryFee = customDeliveryFee !== undefined ? customDeliveryFee : baseDeliveryFee + expressFee;
     const total = cartTotal + deliveryFee;
     const orderNumber = `NB-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -774,7 +807,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       deliverySlot,
       paymentMethod,
       paymentStatus: paymentMethod === 'cod' ? 'pending' : 'paid',
-      estimatedMinutes: 28,
+      estimatedMinutes: isExpress || serviceType === 'express' ? 35 : 28,
+      coordinates,
+      googleMapsUrl: googleMapsUrl || (coordinates ? `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}` : undefined),
+      deliveryNotes,
+      isExpress: isExpress || serviceType === 'express',
+      serviceType,
+      dropoffPreference,
+      doorbellPreference,
+      bluePlateInfo,
       courier: {
         name: deliveryDriver.name,
         phone: deliveryDriver.phone,

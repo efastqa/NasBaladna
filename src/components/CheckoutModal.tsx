@@ -13,8 +13,21 @@ import {
   Smartphone,
   Wallet,
   ArrowRight,
+  Zap,
+  ExternalLink,
+  LocateFixed,
+  FileText,
+  Leaf,
+  Bell,
+  BellOff,
+  Building,
+  Home,
+  UserCheck,
 } from 'lucide-react';
 import { DELIVERY_SLOTS, QATAR_DISTRICTS } from '../data/mockData';
+import { DeliveryMapPickerModal } from './DeliveryMapPickerModal';
+import { LatLng } from '../constants/locations';
+import { DeliveryServiceType, DropoffPreference } from '../types';
 
 export const CheckoutModal: React.FC = () => {
   const {
@@ -36,6 +49,21 @@ export const CheckoutModal: React.FC = () => {
   const [deliverySlot, setDeliverySlot] = useState(DELIVERY_SLOTS[0].id);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'apple_pay' | 'cod'>('card');
 
+  // Delivery & Fulfillment enhancements state
+  const [serviceType, setServiceType] = useState<DeliveryServiceType>('standard');
+  const [dropoffPreference, setDropoffPreference] = useState<DropoffPreference>('hand_to_me');
+  const [doorbellPreference, setDoorbellPreference] = useState<'ring' | 'silent'>('ring');
+  const [bluePlateZone, setBluePlateZone] = useState('66');
+  const [bluePlateStreet, setBluePlateStreet] = useState('902');
+  const [bluePlateBuilding, setBluePlateBuilding] = useState('24');
+  const [showBluePlateHelper, setShowBluePlateHelper] = useState(false);
+
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [pinnedCoordinates, setPinnedCoordinates] = useState<LatLng | undefined>(undefined);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState<string | undefined>(undefined);
+  const [deliveryNotes, setDeliveryNotes] = useState<string>('');
+  const [isExpressDelivery, setIsExpressDelivery] = useState<boolean>(false);
+
   // Card details state
   const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8829');
   const [cardHolder, setCardHolder] = useState('SARA AL KUWARI');
@@ -48,7 +76,12 @@ export const CheckoutModal: React.FC = () => {
   const [otpCode, setOtpCode] = useState('');
 
   const selectedSlot = DELIVERY_SLOTS.find((s) => s.id === deliverySlot) || DELIVERY_SLOTS[0];
-  const deliveryFee = cartTotal >= 50 ? 0 : selectedSlot.fee;
+  let baseDeliveryFee = cartTotal >= 50 ? 0 : selectedSlot.fee;
+  if (serviceType === 'eco_green' && baseDeliveryFee > 0) {
+    baseDeliveryFee = 2.0; // Eco-green discounted fee
+  }
+  const expressFee = serviceType === 'express' || isExpressDelivery ? 15.0 : 0;
+  const deliveryFee = baseDeliveryFee + expressFee;
   const finalTotal = cartTotal + deliveryFee;
 
   const handleSubmitOrder = (e: React.FormEvent) => {
@@ -110,8 +143,25 @@ export const CheckoutModal: React.FC = () => {
         phone,
         address,
         district,
-        deliverySlot: selectedSlot.title,
+        deliverySlot:
+          serviceType === 'express' || isExpressDelivery
+            ? 'Express 60-Minute Priority Direct Courier'
+            : serviceType === 'eco_green'
+            ? `🌱 Eco Batch: ${selectedSlot.title}`
+            : selectedSlot.title,
         paymentMethod,
+        coordinates: pinnedCoordinates,
+        googleMapsUrl,
+        deliveryNotes,
+        isExpress: serviceType === 'express' || isExpressDelivery,
+        serviceType,
+        dropoffPreference,
+        doorbellPreference,
+        bluePlateInfo:
+          bluePlateZone && bluePlateStreet && bluePlateBuilding
+            ? { zone: bluePlateZone, street: bluePlateStreet, building: bluePlateBuilding }
+            : undefined,
+        customDeliveryFee: deliveryFee,
       });
       setIsProcessing(false);
       setShowOtpModal(false);
@@ -149,11 +199,46 @@ export const CheckoutModal: React.FC = () => {
         {/* Form Body */}
         <form onSubmit={handleSubmitOrder} className="overflow-y-auto flex-1 p-4 sm:p-7 space-y-6 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.5rem))]">
           {/* Section 1: Delivery Address & Customer Details */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
-              <MapPin className="w-4 h-4 text-emerald-600" />
-              <span>1. Delivery Destination</span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                <span>1. Delivery Destination</span>
+              </div>
+
+              {/* Pin Location on Map Button */}
+              <button
+                type="button"
+                onClick={() => setIsMapModalOpen(true)}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+              >
+                <LocateFixed className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{pinnedCoordinates ? 'Change Location Pin' : '📍 Drop Map Pin (GPS)'}</span>
+              </button>
             </div>
+
+            {/* Pinned Coordinates Notification Pill */}
+            {pinnedCoordinates && (
+              <div className="p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <span className="font-semibold truncate">
+                    GPS Pin Dropped: {pinnedCoordinates.lat}° N, {pinnedCoordinates.lng}° E ({district})
+                  </span>
+                </div>
+                {googleMapsUrl && (
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-950 flex items-center gap-1 shrink-0 underline"
+                  >
+                    <span>Test on Google Maps</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -211,42 +296,124 @@ export const CheckoutModal: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Courier Specific Delivery Notes */}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                <span>Courier Delivery Notes (Gate code, buzzer, porch drop)</span>
+              </label>
+              <input
+                type="text"
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+                placeholder="e.g. Ring buzzer on front gate, leave box by white entrance door"
+                className="w-full text-xs font-medium px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
           </div>
 
-          {/* Section 2: Delivery Slot Selection */}
+          {/* Section 2: Delivery Speed & Time Slot */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
-              <Clock className="w-4 h-4 text-emerald-600" />
-              <span>2. Delivery Window</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <Clock className="w-4 h-4 text-emerald-600" />
+                <span>2. Delivery Speed & Time Window</span>
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Cold-Chain Refrigerated
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {DELIVERY_SLOTS.map((slot) => {
-                const isSelected = deliverySlot === slot.id;
-                return (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => setDeliverySlot(slot.id)}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/30'
-                        : 'border-slate-200 hover:border-slate-300'
+            {/* Express 60-Minute Delivery Highlight Card */}
+            <div
+              onClick={() => setIsExpressDelivery(!isExpressDelivery)}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                isExpressDelivery
+                  ? 'bg-gradient-to-r from-amber-50 to-orange-50/60 border-amber-400 ring-2 ring-amber-400/30'
+                  : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
+                      isExpressDelivery
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'bg-slate-200 text-slate-600'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-slate-900">{slot.title}</span>
-                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded">
-                        {slot.badge}
+                    <Zap className="w-4 h-4 fill-current" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">
+                        ⚡ Express 60-Minute Priority Direct Delivery
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded-full">
+                        FASTEST
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500">
-                      {slot.fee === 0 ? 'Free Delivery' : formatPrice(slot.fee)}
-                    </span>
-                  </button>
-                );
-              })}
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Direct cold-chain courier dispatch straight to your door in under 60 minutes.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-bold font-mono text-slate-900 block">
+                    +QAR 15.00
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold ${
+                      isExpressDelivery ? 'text-amber-700' : 'text-slate-400'
+                    }`}
+                  >
+                    {isExpressDelivery ? '✓ Selected' : 'Tap to Add'}
+                  </span>
+                </div>
+              </div>
             </div>
+
+            {/* Standard Scheduled Eco Slots (Hidden or Dimmed if Express chosen) */}
+            {!isExpressDelivery ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {DELIVERY_SLOTS.map((slot) => {
+                  const isSelected = deliverySlot === slot.id;
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => setDeliverySlot(slot.id)}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/30'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-slate-900">{slot.title}</span>
+                        <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                          {slot.badge}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-500">
+                        {cartTotal >= 50
+                          ? 'Free (Order > 50)'
+                          : slot.fee === 0
+                          ? 'Free Delivery'
+                          : formatPrice(slot.fee)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0 fill-amber-600" />
+                <span>Express courier priority activated! Driver departs immediately from transit hub.</span>
+              </div>
+            )}
           </div>
 
           {/* Section 3: Secure Payment Gateway */}
@@ -526,6 +693,22 @@ export const CheckoutModal: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Interactive Delivery Map Pin Drop Modal */}
+        <DeliveryMapPickerModal
+          isOpen={isMapModalOpen}
+          onClose={() => setIsMapModalOpen(false)}
+          currentDistrict={district}
+          currentAddress={address}
+          initialCoordinates={pinnedCoordinates}
+          onConfirmLocation={({ district: newDist, address: newAddr, coordinates, googleMapsUrl: newUrl, deliveryNotes: newNotes }) => {
+            setDistrict(newDist);
+            if (newAddr) setAddress(newAddr);
+            setPinnedCoordinates(coordinates);
+            setGoogleMapsUrl(newUrl);
+            if (newNotes) setDeliveryNotes(newNotes);
+          }}
+        />
       </div>
     </div>
   );
