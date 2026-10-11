@@ -32,6 +32,7 @@ export const Header: React.FC = () => {
     isAdminAuthenticated,
     adminLogout,
     setCurrentView,
+    unreadOrdersCount,
   } = useStore();
 
   return (
@@ -152,11 +153,17 @@ export const Header: React.FC = () => {
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => setCurrentView('admin')}
-                className="flex items-center gap-1 px-2 sm:px-3 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+                className="relative flex items-center gap-1.5 px-2 sm:px-3 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
                 title="Return to Admin Dashboard"
               >
                 <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span className="hidden sm:inline">Admin</span>
+                {unreadOrdersCount > 0 && (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-600 text-[10px] font-black text-white animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                    <span>{unreadOrdersCount} NEW</span>
+                  </span>
+                )}
               </button>
               
               <button

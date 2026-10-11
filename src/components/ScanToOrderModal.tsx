@@ -123,7 +123,11 @@ export const ScanToOrderModal: React.FC<ScanToOrderModalProps> = ({
 
   // Direct print using native browser print dialog
   const handlePrint = () => {
-    window.print();
+    try {
+      window.print();
+    } catch (err) {
+      console.warn('Native window.print failed:', err);
+    }
   };
 
   // Download high-resolution PNG image

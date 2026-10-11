@@ -41,8 +41,13 @@ import {
   RotateCcw,
   FileImage,
   BellRing,
+  Bell,
+  Volume2,
+  VolumeX,
   Printer,
   QrCode,
+  Radio,
+  CheckCheck,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
@@ -92,6 +97,12 @@ export const AdminPortal: React.FC = () => {
     ownerPhone,
     ownerWhatsAppUrl,
     showToast,
+    unreadOrdersCount,
+    markOrdersAsRead,
+    adminAlertSoundEnabled,
+    setAdminAlertSoundEnabled,
+    playOrderAlertChime,
+    latestReceivedOrder,
   } = useStore();
 
   // Login form state
@@ -134,6 +145,40 @@ export const AdminPortal: React.FC = () => {
   const [adminSearch, setAdminSearch] = useState('');
   const [adminCategoryFilter, setAdminCategoryFilter] = useState('all');
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+
+  // Admin Live Orders Filter & Audio Notification State
+  const [orderFilter, setOrderFilter] = useState<'all' | 'unread' | 'confirmed' | 'packing' | 'on_the_way' | 'delivered'>('all');
+  const [desktopNotifGranted, setDesktopNotifGranted] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
+  });
+
+  const handleEnableDesktopNotifications = async () => {
+    const granted = await NotificationService.requestNotificationPermission();
+    setDesktopNotifGranted(granted);
+    if (granted) {
+      showToast('Browser notifications enabled! You will be alerted for every new website order.');
+    } else {
+      showToast('Notifications could not be enabled. Please check your browser permission settings.');
+    }
+  };
+
+  const sendAdminOrderAlertWhatsApp = (order: Order) => {
+    const text = `🚨 *NEW WEBSITE ORDER RECEIVED*\n` +
+      `━━━━━━━━━━━━━━━━━━━\n` +
+      `*Order #:* ${order.orderNumber}\n` +
+      `*Customer:* ${order.customerName} (${order.phone})\n` +
+      `*Delivery Area:* ${order.district}\n` +
+      `*Address:* ${order.address}\n` +
+      `*Delivery Slot:* ${order.deliverySlot}\n` +
+      `*Payment:* ${order.paymentMethod.toUpperCase()} (${order.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'})\n` +
+      `*Total Amount:* ${order.currency} ${order.total.toFixed(2)}\n\n` +
+      `*Items Ordered:*\n` +
+      order.items.map((i) => `• ${i.quantity}x ${i.product.name} (${i.selectedWeight})`).join('\n') +
+      `\n\nDispatching with Driver: ${deliveryDriver.name} (${deliveryDriver.phone})`;
+
+    const targetUrl = NotificationService.getWhatsAppUrl(ownerPhone, text);
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Delivery Driver Form State
   const [driverName, setDriverName] = useState(deliveryDriver.name);
@@ -642,6 +687,71 @@ export const AdminPortal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Real-Time Order Reception Indicator & Jump */}
+            <button
+              onClick={() => {
+                setActiveTab('orders');
+                if (unreadOrdersCount > 0) {
+                  setOrderFilter('unread');
+                }
+              }}
+              className={`relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                unreadOrdersCount > 0
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-950/60 ring-2 ring-rose-400 animate-pulse'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+              }`}
+              title={
+                unreadOrdersCount > 0
+                  ? `🚨 ${unreadOrdersCount} NEW Orders Received! Click to view.`
+                  : 'Customer Orders'
+              }
+            >
+              <BellRing
+                className={`w-3.5 h-3.5 ${
+                  unreadOrdersCount > 0 ? 'text-white animate-bounce' : 'text-emerald-400'
+                }`}
+              />
+              <span className="hidden sm:inline">Live Orders</span>
+              {unreadOrdersCount > 0 ? (
+                <span className="px-1.5 py-0.5 bg-white text-rose-700 text-[10px] font-black rounded-full shadow-xs">
+                  {unreadOrdersCount} NEW
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-400 font-mono">({ordersHistory.length})</span>
+              )}
+            </button>
+
+            {/* Audio Alert Chime Quick Toggle */}
+            <button
+              onClick={() => {
+                const next = !adminAlertSoundEnabled;
+                setAdminAlertSoundEnabled(next);
+                if (next) {
+                  playOrderAlertChime();
+                  showToast('🔊 Order Chime Enabled! (Sample audio chime played)');
+                } else {
+                  showToast('🔕 Order Chime Muted');
+                }
+              }}
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                adminAlertSoundEnabled
+                  ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-800/80 hover:bg-emerald-900'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+              title={
+                adminAlertSoundEnabled
+                  ? 'Order Chime is ACTIVE - Click to Mute'
+                  : 'Order Chime is MUTED - Click to Enable'
+              }
+            >
+              {adminAlertSoundEnabled ? (
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden lg:inline">{adminAlertSoundEnabled ? 'Chime ON' : 'Muted'}</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('qr_studio')}
               className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
@@ -691,6 +801,83 @@ export const AdminPortal: React.FC = () => {
 
       {/* Main Admin Content Container */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 flex flex-col space-y-6">
+        {/* PROMINENT HIGH-VISIBILITY NEW ORDER RECEIVED ALERT BANNER (ONLY FOR ADMIN) */}
+        {unreadOrdersCount > 0 && (
+          <div className="bg-gradient-to-r from-rose-950/90 via-slate-950 to-emerald-950/80 border-2 border-rose-500/80 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden ring-4 ring-rose-500/20">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-rose-900/60 animate-bounce mt-0.5">
+                  <BellRing className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider rounded-md">
+                      NEW ORDER RECEIVED
+                    </span>
+                    <span className="text-xs text-rose-300 font-semibold">
+                      {unreadOrdersCount} website order{unreadOrdersCount > 1 ? 's' : ''} awaiting fulfillment
+                    </span>
+                  </div>
+                  {latestReceivedOrder ? (
+                    <div className="mt-1">
+                      <h3 className="text-base sm:text-lg font-bold text-white">
+                        Order #{latestReceivedOrder.orderNumber} · {latestReceivedOrder.customerName}
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        <strong className="text-emerald-400 font-mono">
+                          {formatPrice(latestReceivedOrder.total)}
+                        </strong>{' '}
+                        ({latestReceivedOrder.items.length} items) · Delivery to{' '}
+                        <span className="text-slate-200">{latestReceivedOrder.district}</span> · Slot:{' '}
+                        <span className="text-slate-200">{latestReceivedOrder.deliverySlot}</span> · Method:{' '}
+                        <span className="uppercase text-amber-300 font-mono">{latestReceivedOrder.paymentMethod}</span>
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-300 mt-1">
+                      Customers have placed new orders on the website. Check customer orders to review details and begin packaging.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Fast Action Buttons for Admin */}
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
+                <button
+                  onClick={() => {
+                    setActiveTab('orders');
+                    setOrderFilter('unread');
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>View Orders</span>
+                </button>
+
+                {latestReceivedOrder && (
+                  <button
+                    onClick={() => sendAdminOrderAlertWhatsApp(latestReceivedOrder)}
+                    className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+                    title="Send Order Summary to Admin Phone (+974 7731 5415) on WhatsApp"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>WhatsApp Alert</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={markOrdersAsRead}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5"
+                  title="Mark all orders as seen and dismiss this alert"
+                >
+                  <CheckCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Mark as Seen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="bg-slate-950 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
           <button
@@ -755,7 +942,7 @@ export const AdminPortal: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
+            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
               activeTab === 'orders'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
@@ -763,6 +950,11 @@ export const AdminPortal: React.FC = () => {
           >
             <Truck className="w-4 h-4" />
             <span>Customer Orders ({ordersHistory.length})</span>
+            {unreadOrdersCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black animate-pulse shadow-xs">
+                +{unreadOrdersCount} NEW
+              </span>
+            )}
           </button>
 
           <button
@@ -2173,115 +2365,305 @@ export const AdminPortal: React.FC = () => {
 
         {/* TAB 4: ORDERS & FULFILLMENT MANAGEMENT */}
         {activeTab === 'orders' && (
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-            <div>
-              <h2 className="text-lg font-bold font-['Outfit'] text-white">
-                Customer Orders & Cold-Chain Fulfillment
-              </h2>
-              <p className="text-xs text-slate-400">
-                Track and change live order delivery stages. Updating the status notifies the customer's live tracking view.
-              </p>
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-5">
+            {/* Orders Header & Live Reception Bar */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold font-['Outfit'] text-white">
+                    Live Customer Orders & Kitchen Dispatch
+                  </h2>
+                  {unreadOrdersCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider animate-pulse">
+                      {unreadOrdersCount} NEW
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Real-time monitor for orders placed on the website. Receive instant audio chimes and WhatsApp alerts.
+                </p>
+              </div>
+
+              {/* Live Reception Alert Settings */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Audio Chime Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !adminAlertSoundEnabled;
+                    setAdminAlertSoundEnabled(next);
+                    if (next) {
+                      playOrderAlertChime();
+                      showToast('🔊 Live Order Chime Enabled (Sample played)');
+                    } else {
+                      showToast('🔕 Order Chime Muted');
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    adminAlertSoundEnabled
+                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/80'
+                      : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                  }`}
+                  title="Toggle audio alert chime when website customers submit orders"
+                >
+                  {adminAlertSoundEnabled ? (
+                    <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <VolumeX className="w-3.5 h-3.5" />
+                  )}
+                  <span>Chime: {adminAlertSoundEnabled ? 'ON' : 'OFF'}</span>
+                </button>
+
+                {/* Test Sound Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playOrderAlertChime();
+                    showToast('Playing sample order alert chime 🎵');
+                  }}
+                  className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl text-xs font-medium transition-colors flex items-center gap-1"
+                  title="Test audio chime volume"
+                >
+                  <BellRing className="w-3 h-3 text-emerald-400" />
+                  <span>Test Chime</span>
+                </button>
+
+                {/* Desktop Push Notification Permission */}
+                <button
+                  type="button"
+                  onClick={handleEnableDesktopNotifications}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    desktopNotifGranted
+                      ? 'bg-sky-950/70 text-sky-300 border border-sky-800/80'
+                      : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-850'
+                  }`}
+                  title="Enable desktop notifications so you get alerted even if browser is in another tab"
+                >
+                  <Radio className={`w-3.5 h-3.5 ${desktopNotifGranted ? 'text-sky-400' : 'text-slate-400'}`} />
+                  <span>Desktop Alerts: {desktopNotifGranted ? 'Active' : 'Enable'}</span>
+                </button>
+
+                {/* Acknowledge / Clear Unread */}
+                {unreadOrdersCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={markOrdersAsRead}
+                    className="px-3 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Acknowledge All</span>
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
+              <button
+                type="button"
+                onClick={() => setOrderFilter('all')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap ${
+                  orderFilter === 'all'
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-900 text-slate-400 hover:text-white'
+                }`}
+              >
+                All Orders ({ordersHistory.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderFilter('unread')}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                  orderFilter === 'unread'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : unreadOrdersCount > 0
+                    ? 'bg-rose-950/70 text-rose-300 border border-rose-800/80'
+                    : 'bg-slate-900 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Bell className="w-3 h-3" />
+                <span>New Unread ({unreadOrdersCount})</span>
+              </button>
+
+              {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map((st) => {
+                const count = ordersHistory.filter((o) => o.status === st).length;
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setOrderFilter(st)}
+                    className={`px-3 py-1.5 rounded-xl font-semibold capitalize transition-colors whitespace-nowrap ${
+                      orderFilter === st
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-900 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {st === 'on_the_way' ? 'On Route' : st} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Orders Feed */}
             {ordersHistory.length === 0 ? (
               <div className="text-center py-12 text-slate-500 text-xs">
                 No orders placed yet. Place a test order in the customer store to view management controls.
               </div>
             ) : (
               <div className="space-y-3">
-                {ordersHistory.map((ord) => (
-                  <div
-                    key={ord.id}
-                    className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm">#{ord.orderNumber}</span>
-                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
-                          {ord.status.replace('_', ' ')}
-                        </span>
-                        <span className="text-slate-400">· {ord.createdAt}</span>
-                      </div>
-                      <div className="text-slate-300">
-                        <strong>Customer:</strong> {ord.customerName} ({ord.phone})
-                      </div>
-                      <div className="text-slate-400">
-                        <strong>Address:</strong> {ord.address}, {ord.district}
-                      </div>
-                      <div className="text-slate-400">
-                        <strong>Items:</strong> {ord.items.map((i) => `${i.product.name} (${i.selectedWeight}) x${i.quantity}`).join(', ')}
-                      </div>
-                    </div>
+                {ordersHistory
+                  .filter((ord, idx) => {
+                    if (orderFilter === 'all') return true;
+                    if (orderFilter === 'unread') return idx < unreadOrdersCount;
+                    return ord.status === orderFilter;
+                  })
+                  .map((ord, idx) => {
+                    const isNewOrder = idx < unreadOrdersCount || ord.id === latestReceivedOrder?.id;
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-slate-400 block text-[10px]">Total Amount</span>
-                        <span className="text-base font-bold font-mono text-emerald-400">
-                          {formatPrice(ord.total)}
-                        </span>
-                      </div>
+                    return (
+                      <div
+                        key={ord.id}
+                        className={`p-4 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs transition-all ${
+                          isNewOrder
+                            ? 'bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/80 ring-2 ring-rose-500/20 shadow-lg'
+                            : 'bg-slate-900 border-slate-800'
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-white text-sm">#{ord.orderNumber}</span>
 
-                      {/* Status changer buttons & Direct Notification trigger */}
-                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-                          {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map(
-                            (st) => (
+                            {isNewOrder && (
+                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-600 text-white animate-pulse flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                                <span>NEW ORDER</span>
+                              </span>
+                            )}
+
+                            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
+                              {ord.status.replace('_', ' ')}
+                            </span>
+                            <span className="text-slate-400">· {ord.createdAt}</span>
+
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                              {ord.paymentMethod.toUpperCase()} · {ord.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'}
+                            </span>
+                          </div>
+
+                          <div className="text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span>
+                              <strong>Customer:</strong> {ord.customerName}
+                            </span>
+                            <a
+                              href={`tel:${ord.phone}`}
+                              className="text-emerald-400 hover:underline font-mono"
+                            >
+                              {ord.phone}
+                            </a>
+                            <span className="text-slate-500">·</span>
+                            <span>
+                              <strong>Area:</strong> {ord.district}
+                            </span>
+                          </div>
+
+                          <div className="text-slate-400">
+                            <strong>Address:</strong> {ord.address} · <strong>Slot:</strong> {ord.deliverySlot}
+                          </div>
+
+                          <div className="text-slate-300 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
+                            <strong className="text-slate-400">Harvest Basket:</strong>{' '}
+                            {ord.items.map((i) => `${i.product.name} (${i.selectedWeight}) x${i.quantity}`).join(', ')}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 w-full md:w-auto justify-between md:justify-end">
+                          <div className="text-left md:text-right">
+                            <span className="text-slate-400 block text-[10px]">Total Amount</span>
+                            <span className="text-base font-bold font-mono text-emerald-400">
+                              {formatPrice(ord.total)}
+                            </span>
+                          </div>
+
+                          {/* Action Buttons: Status changer + Alerts + Receipt */}
+                          <div className="flex flex-col items-start md:items-end gap-2 w-full sm:w-auto">
+                            {/* Status changer buttons */}
+                            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                              {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map(
+                                (st) => (
+                                  <button
+                                    key={st}
+                                    type="button"
+                                    onClick={() => updateOrderStatus(ord.id, st)}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold capitalize transition-colors ${
+                                      ord.status === st
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                                  >
+                                    {st === 'on_the_way' ? 'On Route' : st}
+                                  </button>
+                                )
+                              )}
+                            </div>
+
+                            {/* Direct notification triggers */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Send to Admin's own WhatsApp (+974 7731 5415) */}
                               <button
-                                key={st}
-                                onClick={() => updateOrderStatus(ord.id, st)}
-                                className={`px-2 py-1 rounded-lg text-[10px] font-bold capitalize transition-colors ${
-                                  ord.status === st
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'text-slate-400 hover:text-white'
-                                }`}
+                                type="button"
+                                onClick={() => sendAdminOrderAlertWhatsApp(ord)}
+                                className="p-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                title="Send order invoice & packaging details to Admin WhatsApp (+974 7731 5415)"
                               >
-                                {st === 'on_the_way' ? 'On Route' : st}
+                                <MessageCircle className="w-3.5 h-3.5 fill-current text-white" />
+                                <span>Admin WhatsApp</span>
                               </button>
-                            )
-                          )}
-                        </div>
 
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={NotificationService.getWhatsAppUrl(
-                              ord.phone,
-                              NotificationService.buildWhatsAppMessage(ord)
-                            )}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
-                            title="Send WhatsApp Order Update"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                            <span className="hidden xl:inline">WhatsApp</span>
-                          </a>
+                              {/* WhatsApp Customer */}
+                              <a
+                                href={NotificationService.getWhatsAppUrl(
+                                  ord.phone,
+                                  NotificationService.buildWhatsAppMessage(ord)
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                title="Send WhatsApp Order Update directly to customer"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                                <span className="hidden xl:inline">Customer</span>
+                              </a>
 
-                          <a
-                            href={NotificationService.getSmsUrl(
-                              ord.phone,
-                              NotificationService.buildSmsMessage(ord)
-                            )}
-                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
-                            title="Send SMS Order Update"
-                          >
-                            <Send className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="hidden xl:inline">SMS</span>
-                          </a>
+                              {/* SMS Customer */}
+                              <a
+                                href={NotificationService.getSmsUrl(
+                                  ord.phone,
+                                  NotificationService.buildSmsMessage(ord)
+                                )}
+                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                title="Send SMS Order Update to customer"
+                              >
+                                <Send className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="hidden xl:inline">SMS</span>
+                              </a>
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedReceiptOrder(ord)}
-                            className="p-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
-                            title="View & Print Official Customer Receipt / Tax Invoice"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="hidden xl:inline">Receipt</span>
-                          </button>
+                              {/* Print Official Receipt / Kitchen Ticket */}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedReceiptOrder(ord)}
+                                className="p-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                title="View & Print Official Customer Receipt / Tax Invoice"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Receipt</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             )}
           </div>

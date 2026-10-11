@@ -112,6 +112,14 @@ interface StoreContextType {
     deliverySlot: string;
     paymentMethod: 'card' | 'apple_pay' | 'cod';
   }) => Order;
+
+  // Admin New Order Notification Alerting
+  unreadOrdersCount: number;
+  markOrdersAsRead: () => void;
+  adminAlertSoundEnabled: boolean;
+  setAdminAlertSoundEnabled: (enabled: boolean) => void;
+  playOrderAlertChime: () => void;
+  latestReceivedOrder: Order | null;
   
   ownerPhone: string;
   ownerWhatsAppUrl: string;
@@ -201,6 +209,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [ordersHistory, setOrdersHistory] = useState<Order[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Admin New Order Alert State
+  const [unreadOrdersCount, setUnreadOrdersCount] = useState<number>(() => {
+    const saved = localStorage.getItem('nb_unread_orders_count');
+    return saved ? Math.max(0, parseInt(saved, 10)) : 0;
+  });
+  const [adminAlertSoundEnabled, setAdminAlertSoundEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('nb_admin_alert_sound') !== 'false';
+  });
+  const [latestReceivedOrder, setLatestReceivedOrder] = useState<Order | null>(null);
+
+  const markOrdersAsRead = () => {
+    setUnreadOrdersCount(0);
+    localStorage.setItem('nb_unread_orders_count', '0');
+    setLatestReceivedOrder(null);
+  };
+
+  const playOrderAlertChime = () => {
+    NotificationService.playOrderChime();
+  };
+
+  useEffect(() => {
+    localStorage.setItem('nb_admin_alert_sound', String(adminAlertSoundEnabled));
+  }, [adminAlertSoundEnabled]);
 
   // Dynamic Categories Management
   const [categories, setCategories] = useState<CategoryItem[]>(() => {
@@ -756,6 +788,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrdersHistory((prev) => [newOrder, ...prev]);
     api.createOrder(newOrder).catch((e) => console.warn('API createOrder:', e));
 
+    // Admin Notification Logic - notify admin immediately when website customer places an order
+    setUnreadOrdersCount((prev) => {
+      const next = prev + 1;
+      localStorage.setItem('nb_unread_orders_count', String(next));
+      return next;
+    });
+    setLatestReceivedOrder(newOrder);
+
+    // Play chime sound and display desktop alert for admin if enabled
+    if (adminAlertSoundEnabled) {
+      NotificationService.playOrderChime();
+    }
+    NotificationService.showDesktopNotification(
+      `🚨 New Order Received: #${orderNumber}`,
+      `Customer ${customerName} ordered ${cart.length} item(s) for ${currency} ${total.toFixed(2)}.`
+    );
+
     // Automated dispatch of WhatsApp & SMS notifications
     NotificationService.sendAutomatedNotification(newOrder, 'whatsapp', 'confirmed');
     NotificationService.sendAutomatedNotification(newOrder, 'sms', 'confirmed');
@@ -876,8 +925,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ownerWhatsAppUrl: BUSINESS_OWNER_CONTACT.whatsappUrl,
         toastMessage,
         showToast,
-
-
+        unreadOrdersCount,
+        markOrdersAsRead,
+        adminAlertSoundEnabled,
+        setAdminAlertSoundEnabled,
+        playOrderAlertChime,
+        latestReceivedOrder,
       }}
     >
       {children}

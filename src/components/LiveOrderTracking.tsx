@@ -16,6 +16,8 @@ import {
   ChevronRight,
   Send,
   BellRing,
+  LogOut,
+  LayoutDashboard,
 } from 'lucide-react';
 import { OrderStatus } from '../types';
 import { DeliveryRouteRadar } from './DeliveryRouteRadar';

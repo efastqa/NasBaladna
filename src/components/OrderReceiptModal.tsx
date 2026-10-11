@@ -258,7 +258,14 @@ Customer Support: +974 7731 5415`;
       `Delivery To: ${order.address}, ${order.district}\n` +
       `Courier: ${order.courier.name} (${order.courier.phone})`
     );
-    window.open(`https://wa.me/?text=${summary}`, '_blank');
+    const targetUrl = `https://wa.me/?text=${summary}`;
+    const link = document.createElement('a');
+    link.href = targetUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (

@@ -144,26 +144,30 @@ const MainStoreContent: React.FC = () => {
               </p>
             </div>
 
-            {/* Category Filter Pills (Functional Filter Controls) */}
+            {/* Category Filter Pills (Functional Animated Filter Controls) */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
-              <button
+              <motion.button
+                whileHover={{ y: -2, scale: 1.04 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedCategory('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   selectedCategory === 'all'
                     ? 'bg-emerald-800 text-white shadow-xs'
                     : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
                 }`}
               >
                 All Produce
-              </button>
+              </motion.button>
               {categories.map((cat) => {
                 const isSelected = selectedCategory === cat.id;
                 const isNearExpiry = cat.id === 'near_expiry';
                 return (
-                  <button
+                  <motion.button
                     key={cat.id}
+                    whileHover={{ y: -2, scale: 1.04 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       isSelected
                         ? isNearExpiry
                           ? 'bg-rose-700 text-white shadow-xs'
@@ -174,7 +178,7 @@ const MainStoreContent: React.FC = () => {
                     }`}
                   >
                     {isNearExpiry ? '⚡ Near Expiry' : cat.name}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>

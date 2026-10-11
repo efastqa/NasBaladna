@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import { CATEGORIES_DATA } from '../data/mockData';
+import { motion } from 'motion/react';
 
 export const MenuDrawer: React.FC = () => {
   const {
@@ -29,6 +30,7 @@ export const MenuDrawer: React.FC = () => {
     adminLogout,
     setCurrentView,
     ownerPhone,
+    unreadOrdersCount,
   } = useStore();
 
   if (!isMenuDrawerOpen) return null;
@@ -64,19 +66,26 @@ export const MenuDrawer: React.FC = () => {
               Farm Categories
             </h3>
             <div className="space-y-1">
-              <button
+              <motion.button
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => handleCategorySelect('all')}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 text-xs font-semibold text-slate-700 transition-colors"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
               >
                 <span>All Farm Harvest</span>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
+              </motion.button>
 
-              {categories.map((cat) => (
-                <button
+              {categories.map((cat, idx) => (
+                <motion.button
                   key={cat.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 + idx * 0.03, duration: 0.2 }}
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => handleCategorySelect(cat.id)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                     cat.id === 'near_expiry'
                       ? 'bg-rose-50/70 text-rose-800 hover:bg-rose-100/80'
                       : 'hover:bg-emerald-50 hover:text-emerald-800 text-slate-700'
@@ -105,7 +114,7 @@ export const MenuDrawer: React.FC = () => {
                     )}
                   </div>
                   <ChevronRight className={`w-4 h-4 ${cat.id === 'near_expiry' ? 'text-rose-400' : 'text-slate-400'}`} />
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -206,6 +215,11 @@ export const MenuDrawer: React.FC = () => {
               >
                 <LayoutDashboard className="w-3 h-3" />
                 <span>Admin</span>
+                {unreadOrdersCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-black animate-pulse">
+                    +{unreadOrdersCount}
+                  </span>
+                )}
               </button>
 
               <button
