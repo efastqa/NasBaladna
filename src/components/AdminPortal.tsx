@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import { NasBaladnaLogo } from './NasBaladnaLogo';
 import {
@@ -16,6 +16,7 @@ import {
   Save,
   X,
   Upload,
+  Download,
   FileSpreadsheet,
   Activity,
   Truck,
@@ -24,6 +25,7 @@ import {
   Phone,
   MessageCircle,
   AlertTriangle,
+  AlertCircle,
   Boxes,
   Eye,
   EyeOff,
@@ -48,6 +50,8 @@ import {
   QrCode,
   Radio,
   CheckCheck,
+  Zap,
+  Calendar,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
@@ -141,6 +145,11 @@ export const AdminPortal: React.FC = () => {
   const [newDescription, setNewDescription] = useState('Fresh morning harvest from NasBaladna local greenhouses.');
   const [newOrganic, setNewOrganic] = useState(true);
 
+  // Near Expiry Specific Form State (only active when category is near_expiry)
+  const [newExpiryDate, setNewExpiryDate] = useState('Best before today or tomorrow');
+  const [newOriginalPrice, setNewOriginalPrice] = useState<number>(10.0);
+  const [newDiscountPercent, setNewDiscountPercent] = useState<number>(50);
+
   // Admin Products Search & Filter State
   const [adminSearch, setAdminSearch] = useState('');
   const [adminCategoryFilter, setAdminCategoryFilter] = useState('all');
@@ -227,11 +236,29 @@ export const AdminPortal: React.FC = () => {
   const [tempPrice, setTempPrice] = useState<number>(0);
   const [tempWholesale, setTempWholesale] = useState<number>(0);
   const [tempStock, setTempStock] = useState<number>(0);
+  const [tempCategory, setTempCategory] = useState<CategoryType>('vegetables');
+  const [tempExpiryDate, setTempExpiryDate] = useState<string>('Best before today or tomorrow');
+  const [tempOriginalPrice, setTempOriginalPrice] = useState<number>(10.0);
+  const [tempDiscountPercent, setTempDiscountPercent] = useState<number>(50);
 
-  // Bulk Import state
+  // Bulk Import state with 10-column CSV (including ImageUrl, ExpiryDate, OriginalPrice)
   const [bulkCsvText, setBulkCsvText] = useState(
-    `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit\nSweet Baby Carrots, vegetables, 4.5, 35, 500g, 35, 5kg Crate\nGolden Papaya, fruits, 7.5, 20, 1kg, 60, 10kg Box\nLocal Fresh Mint, herbs, 2.0, 40, 200g, 15, 2kg Bundle\nFarm Labneh, dairy, 9.0, 25, 500g, 75, 5kg Tub`
+    `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice\n` +
+    `Sweet Baby Carrots, vegetables, 4.5, 35, 500g, 35, 5kg Crate, vegetables, , \n` +
+    `Ripe Hass Avocados 2-Pack, near_expiry, 6.5, 20, 400g, 28, 5kg Box, fruits, Expires in 2 days (Oct 14), 13.5\n` +
+    `Golden Papaya, fruits, 7.5, 20, 1kg, 60, 10kg Box, fruits, , \n` +
+    `Fresh Full Cream Milk 1L, near_expiry, 4.0, 30, 1L, 25, 6 Bottles, dairy, Best before tomorrow (8 PM), 8.5\n` +
+    `Local Fresh Mint, herbs, 2.0, 40, 200g, 15, 2kg Bundle, herbs, , \n` +
+    `Artisanal Sourdough Boule, near_expiry, 5.0, 15, 500g, 30, 6 Loaves, bakery, Expires in 3 days, 11.0`
   );
+  const [bulkUploadedImages, setBulkUploadedImages] = useState<Record<string, { dataUrl: string; filename: string }>>({});
+  const [bulkRowImageOverrides, setBulkRowImageOverrides] = useState<Record<number, string>>({});
+  const [bulkRowExpiryOverrides, setBulkRowExpiryOverrides] = useState<Record<number, string>>({});
+  const [bulkRowOriginalPriceOverrides, setBulkRowOriginalPriceOverrides] = useState<Record<number, number>>({});
+  const [bulkActiveSubTab, setBulkActiveSubTab] = useState<'editor' | 'preview' | 'images'>('editor');
+  const [bulkSelectedRowForImage, setBulkSelectedRowForImage] = useState<number | null>(null);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
+  const bulkSingleRowFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,13 +279,23 @@ export const AdminPortal: React.FC = () => {
     setTempPrice(p.basePrice);
     setTempWholesale(p.wholesalePrice || p.basePrice * 4.5);
     setTempStock(p.stock);
+    setTempCategory(p.category);
+    setTempExpiryDate(p.expiryDate || 'Best before today or tomorrow');
+    setTempOriginalPrice(p.originalPrice || Math.round(p.basePrice * 2 * 10) / 10);
+    setTempDiscountPercent(p.discountPercent || 50);
   };
 
   const handleSaveEdit = (p: Product) => {
+    const isNearExpiry = tempCategory === 'near_expiry';
     updateProduct(p.id, {
+      category: tempCategory,
       basePrice: tempPrice,
       wholesalePrice: tempWholesale,
       stock: tempStock,
+      isNearExpiry: isNearExpiry,
+      expiryDate: isNearExpiry ? (tempExpiryDate.trim() || 'Best before today or tomorrow') : undefined,
+      originalPrice: isNearExpiry ? (tempOriginalPrice > tempPrice ? tempOriginalPrice : tempPrice * 2) : undefined,
+      discountPercent: isNearExpiry ? (tempDiscountPercent || 50) : undefined,
     });
     setEditingId(null);
   };
@@ -475,6 +512,17 @@ export const AdminPortal: React.FC = () => {
       wholesalePrice: Number(newWholesalePrice),
       wholesaleUnit: newWholesaleUnit,
       isWholesaleEligible: true,
+      isNearExpiry: newCategory === 'near_expiry',
+      ...(newCategory === 'near_expiry'
+        ? {
+            expiryDate: newExpiryDate.trim() || 'Best before today or tomorrow',
+            originalPrice:
+              newOriginalPrice > Number(newBasePrice)
+                ? Number(newOriginalPrice)
+                : Math.round(Number(newBasePrice) * 2 * 10) / 10,
+            discountPercent: Number(newDiscountPercent) || 50,
+          }
+        : {}),
       benefits: [
         'Direct local farm harvest with morning delivery',
         'Natural aroma and nutrient retention',
@@ -492,70 +540,378 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
-  const handleProcessBulkCsv = () => {
-    try {
-      const lines = bulkCsvText.trim().split('\n');
-      if (lines.length <= 1) {
-        showToast('Please provide CSV rows');
+  // Resolve product image from manual override, uploaded file mapping, CSV 8th column, or category preset
+  const resolveBulkRowImage = (
+    rowIndex: number,
+    rawName: string,
+    rawCat: string,
+    rawImageCol?: string
+  ): string => {
+    // 1. Direct row override if user edited or uploaded a photo for this row
+    if (bulkRowImageOverrides[rowIndex]) {
+      return bulkRowImageOverrides[rowIndex];
+    }
+
+    // 2. Direct match from bulk uploaded images by product name or filename
+    const cleanName = rawName.toLowerCase().trim();
+    if (bulkUploadedImages[cleanName]) {
+      return bulkUploadedImages[cleanName].dataUrl;
+    }
+    for (const [key, item] of Object.entries(bulkUploadedImages)) {
+      if (cleanName.includes(key) || key.includes(cleanName)) {
+        return item.dataUrl;
+      }
+    }
+
+    // 3. Image column provided in CSV
+    if (rawImageCol && rawImageCol.trim()) {
+      const colVal = rawImageCol.trim();
+      const colLower = colVal.toLowerCase();
+
+      // Check uploaded images mapping by key
+      if (bulkUploadedImages[colLower]) {
+        return bulkUploadedImages[colLower].dataUrl;
+      }
+
+      // Check preset ID match
+      const preset = CATEGORY_IMAGE_PRESETS.find(
+        (p) => p.id.toLowerCase() === colLower || p.name.toLowerCase() === colLower
+      );
+      if (preset) return preset.image;
+
+      // Check standard URL or base64 data URI
+      if (
+        colVal.startsWith('http://') ||
+        colVal.startsWith('https://') ||
+        colVal.startsWith('data:image') ||
+        colVal.startsWith('/')
+      ) {
+        return colVal;
+      }
+    }
+
+    // 4. Default to Category Preset image
+    const catLower = rawCat.toLowerCase().trim();
+    if (catLower === 'fruits') return categoryFruitsImg;
+    if (catLower === 'vegetables') return categoryVegImg;
+    if (catLower === 'dairy') return categoryDairyImg;
+    if (catLower === 'bakery') return categoryBakeryImg;
+    if (catLower === 'herbs') return categoryHerbsImg;
+    if (catLower === 'juices') return categoryJuicesImg;
+    if (catLower === 'near_expiry') return categoryNearExpiryImg;
+    return categoryVegImg;
+  };
+
+  // Multi-file photo upload handler for bulk products
+  const handleBulkImageFilesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    let processedCount = 0;
+    const newUploads: Record<string, { dataUrl: string; filename: string }> = { ...bulkUploadedImages };
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      if (file.size > 8 * 1024 * 1024) {
+        showToast(`Skipped ${file.name}: size exceeds 8MB`);
         return;
       }
 
-      const parsed: Product[] = [];
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        // Clean filename without extension for matching (e.g., "baby_carrots.jpg" -> "baby carrots")
+        const baseKey = file.name
+          .replace(/\.[^/.]+$/, '')
+          .toLowerCase()
+          .replace(/[_-]/g, ' ')
+          .trim();
+        const rawKey = file.name.toLowerCase().trim();
+
+        newUploads[baseKey] = { dataUrl, filename: file.name };
+        newUploads[rawKey] = { dataUrl, filename: file.name };
+        processedCount++;
+
+        if (processedCount >= files.length) {
+          setBulkUploadedImages(newUploads);
+          showToast(`Successfully loaded ${files.length} product photos! Auto-matched with products.`);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (e.target) e.target.value = '';
+  };
+
+  // Upload an image for an individual row in the preview table
+  const handleRowImageFileUpload = (rowIndex: number, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setBulkRowImageOverrides((prev) => ({ ...prev, [rowIndex]: dataUrl }));
+      showToast(`Custom photo attached to Row #${rowIndex}`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Download official CSV template with 10 columns including ImageUrl, ExpiryDate, and OriginalPrice
+  const handleDownloadCsvTemplate = () => {
+    const csvContent =
+      `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice\n` +
+      `Sweet Baby Carrots, vegetables, 4.5, 35, 500g, 35, 5kg Crate, vegetables, , \n` +
+      `Golden Papaya, fruits, 7.5, 20, 1kg, 60, 10kg Box, fruits, , \n` +
+      `Farm Labneh, dairy, 9.0, 25, 500g, 75, 5kg Tub, dairy, , \n` +
+      `Artisan Milk Brioche, bakery, 8.5, 20, 400g, 65, 10 Loaves, bakery, , \n` +
+      `Fresh Coriander Bunch, herbs, 2.0, 50, 200g, 15, 2kg Box, herbs, , \n` +
+      `Cold Pressed Orange Juice, juices, 14.0, 25, 500ml, 120, 10 Bottles, juices, , \n` +
+      `Ripe Hass Avocados 2-Pack, near_expiry, 6.5, 20, 400g, 28, 5kg Box, fruits, Expires in 2 days (Oct 14), 13.5\n` +
+      `Fresh Full Cream Milk 1L, near_expiry, 4.0, 30, 1L, 25, 6 Bottles, dairy, Best before tomorrow (8 PM), 8.5`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'nasbaladna_products_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Downloaded general CSV template with ExpiryDate column!');
+  };
+
+  // Download dedicated Near Expiry Super Deals CSV template
+  const handleDownloadNearExpiryCsvTemplate = () => {
+    const csvContent =
+      `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice\n` +
+      `Local Organic Strawberries 250g, near_expiry, 6.5, 20, 250g, 35, 2kg Crate, fruits, Best before today 8 PM, 14.0\n` +
+      `Fresh Full Cream Milk 1L, near_expiry, 4.0, 30, 1L, 25, 6 Bottles, dairy, Best before tomorrow, 8.5\n` +
+      `Artisanal Sourdough Boule, near_expiry, 5.0, 15, 500g, 30, 6 Loaves, bakery, Expires in 2 days, 11.0\n` +
+      `Baby Spinach Leaves Box, near_expiry, 3.5, 25, 200g, 20, 2kg Box, vegetables, Best before tomorrow, 7.5\n` +
+      `Cold Pressed Orange Juice 500ml, near_expiry, 8.0, 18, 500ml, 50, 6 Bottles, juices, Best within 36h, 16.0\n` +
+      `Ripe Hass Avocados 2-Pack, near_expiry, 7.0, 22, 400g, 38, 5kg Box, fruits, Best before tomorrow, 15.0\n` +
+      `Farm Greek Yogurt Tub 500g, near_expiry, 6.0, 16, 500g, 40, 6 Tubs, dairy, Expires in 3 days, 12.5`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'nasbaladna_near_expiry_deals_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Downloaded Near Expiry Super Deals CSV template!');
+  };
+
+  const handleLoadNearExpirySample = () => {
+    setBulkCsvText(
+      `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice\n` +
+      `Local Organic Strawberries 250g, near_expiry, 6.5, 20, 250g, 35, 2kg Crate, fruits, Best before today 8 PM, 14.0\n` +
+      `Fresh Full Cream Milk 1L, near_expiry, 4.0, 30, 1L, 25, 6 Bottles, dairy, Best before tomorrow, 8.5\n` +
+      `Artisanal Sourdough Boule, near_expiry, 5.0, 15, 500g, 30, 6 Loaves, bakery, Expires in 2 days, 11.0\n` +
+      `Baby Spinach Leaves Box, near_expiry, 3.5, 25, 200g, 20, 2kg Box, vegetables, Best before tomorrow, 7.5\n` +
+      `Cold Pressed Orange Juice 500ml, near_expiry, 8.0, 18, 500ml, 50, 6 Bottles, juices, Best within 36h, 16.0\n` +
+      `Ripe Hass Avocados 2-Pack, near_expiry, 7.0, 22, 400g, 38, 5kg Box, fruits, Best before tomorrow, 15.0\n` +
+      `Farm Greek Yogurt Tub 500g, near_expiry, 6.0, 16, 500g, 40, 6 Tubs, dairy, Expires in 3 days, 12.5`
+    );
+    showToast('Loaded Near Expiry Super Deals sample batch with Expiry Dates & Original Prices!');
+  };
+
+  const handleLoadStandardSample = () => {
+    setBulkCsvText(
+      `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice\n` +
+      `Organic Hass Avocados Box, fruits, 15.0, 30, 500g, 120, 5kg Crate, fruits, , \n` +
+      `Vine Cherry Tomatoes, vegetables, 4.5, 50, 250g, 38, 3kg Box, vegetables, , \n` +
+      `Fresh Coriander Bunch, herbs, 2.0, 60, 150g, 18, 2kg Box, herbs, , \n` +
+      `Artisan Milk Bread, bakery, 8.5, 20, 400g, 65, 10 Loaves, bakery, , \n` +
+      `Cold-Pressed Orange Juice, juices, 14.0, 25, 500ml, 120, 10 Bottles, orange, , \n` +
+      `Near-Expiry Greek Yogurt, near_expiry, 6.0, 15, 450g, 45, 6 Tubs, dairy, Expires in 2 days, 12.0`
+    );
+    showToast('Loaded standard sample produce batch!');
+  };
+
+  // Parsed representation of current bulk rows for preview & validation
+  const parsedBulkRows = useMemo(() => {
+    try {
+      const lines = bulkCsvText.trim().split('\n').filter((l) => l.trim().length > 0);
+      if (lines.length <= 1) return [];
+
+      const headerCols = lines[0].split(',').map((c) => c.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+      const expiryColIdx = headerCols.findIndex((c) => c.includes('expir') || c.includes('date'));
+      const origPriceColIdx = headerCols.findIndex(
+        (c) => c.includes('original') || c.includes('pre-discount') || c.includes('prediscount') || c.includes('wasprice')
+      );
+      const imgColIdx = headerCols.findIndex((c) => c.includes('image') || c.includes('photo') || c.includes('img'));
+
+      const rows: {
+        index: number;
+        name: string;
+        category: CategoryType;
+        price: number;
+        stock: number;
+        weight: string;
+        wholesalePrice: number;
+        wholesaleUnit: string;
+        rawImage: string;
+        resolvedImage: string;
+        expiryDate: string;
+        originalPrice: number;
+        discountPercent: number;
+        isNearExpiry: boolean;
+        isValid: boolean;
+      }[] = [];
+
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map((c) => c.trim());
-        if (cols.length >= 4) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+        if (cols.length >= 2 && cols[0]) {
           const name = cols[0];
-          const cat = (cols[1].toLowerCase() as CategoryType) || 'vegetables';
+          const rawCat = (cols[1]?.toLowerCase() as CategoryType) || 'vegetables';
+          const isNearExpiry = rawCat === 'near_expiry';
           const price = parseFloat(cols[2]) || 5.0;
           const stock = parseInt(cols[3], 10) || 20;
           const weight = cols[4] || '500g';
           const wholesalePrice = cols[5] ? parseFloat(cols[5]) : price * 4.5;
           const wholesaleUnit = cols[6] || '5kg Crate';
+          const rawImage = imgColIdx !== -1 && cols[imgColIdx] ? cols[imgColIdx] : cols[7] || '';
+          const resolvedImage = resolveBulkRowImage(i, name, rawCat, rawImage);
 
-          const imageToUse =
-            cat === 'fruits'
-              ? categoryFruitsImg
-              : cat === 'vegetables'
-              ? categoryVegImg
-              : orangeImg;
+          // Expiry Date resolution (check manual row override, column by header name, or 9th column cols[8])
+          let expiryDate = '';
+          if (bulkRowExpiryOverrides[i] !== undefined) {
+            expiryDate = bulkRowExpiryOverrides[i];
+          } else if (expiryColIdx !== -1 && cols[expiryColIdx]) {
+            expiryDate = cols[expiryColIdx];
+          } else if (cols[8]) {
+            expiryDate = cols[8];
+          } else if (isNearExpiry) {
+            expiryDate = 'Best before tomorrow';
+          }
 
-          parsed.push({
-            id: `prod-bulk-${Date.now()}-${i}`,
+          // Original Pre-Discount Price resolution (check manual override, header column, or 10th column cols[9])
+          let originalPrice = 0;
+          if (bulkRowOriginalPriceOverrides[i] !== undefined) {
+            originalPrice = bulkRowOriginalPriceOverrides[i];
+          } else if (origPriceColIdx !== -1 && cols[origPriceColIdx]) {
+            originalPrice = parseFloat(cols[origPriceColIdx]) || 0;
+          } else if (cols[9]) {
+            originalPrice = parseFloat(cols[9]) || 0;
+          } else if (isNearExpiry) {
+            originalPrice = Math.round(price * 2 * 10) / 10;
+          }
+
+          const discountPercent =
+            originalPrice > price
+              ? Math.round(((originalPrice - price) / originalPrice) * 100)
+              : isNearExpiry
+              ? 50
+              : 0;
+
+          rows.push({
+            index: i,
             name,
-            category: cat,
-            brand: 'NasBaladna Farm Direct',
-            sku: `NB-BLK-${Math.floor(100 + Math.random() * 900)}`,
-            basePrice: price,
-            baseWeight: weight,
-            weightOptions: [
-              { weight, multiplier: 1.0 },
-              { weight: '1kg', multiplier: 1.85 },
-              { weight: '2kg', multiplier: 3.5 },
-            ],
+            category: rawCat,
+            price,
             stock,
-            image: imageToUse,
-            thumbnails: [imageToUse],
-            description: `${name} freshly harvested from NasBaladna farm clusters.`,
-            origin: 'Qatar Agro Farms',
-            farm: 'NasBaladna Cluster 1',
-            organic: true,
+            weight,
             wholesalePrice,
             wholesaleUnit,
-            isWholesaleEligible: true,
-            benefits: ['Farm fresh', 'High nutrition', 'Immediate doorstep delivery'],
-            storageAdvice: 'Refrigerate at 4°C.',
+            rawImage,
+            resolvedImage,
+            expiryDate,
+            originalPrice,
+            discountPercent,
+            isNearExpiry: isNearExpiry || Boolean(expiryDate),
+            isValid: Boolean(name && price > 0),
           });
         }
       }
+      return rows;
+    } catch {
+      return [];
+    }
+  }, [bulkCsvText, bulkUploadedImages, bulkRowImageOverrides, bulkRowExpiryOverrides, bulkRowOriginalPriceOverrides]);
+
+  const handleProcessBulkCsv = () => {
+    try {
+      if (parsedBulkRows.length === 0) {
+        showToast('Please provide valid product CSV rows');
+        return;
+      }
+
+      const parsed: Product[] = parsedBulkRows.map((row) => {
+        const isNearExpiry = row.category === 'near_expiry' || Boolean(row.expiryDate);
+        const resolvedOriginalPrice =
+          row.originalPrice > row.price ? row.originalPrice : Math.round(row.price * 2 * 10) / 10;
+        const resolvedDiscount =
+          row.discountPercent ||
+          (resolvedOriginalPrice > row.price
+            ? Math.round(((resolvedOriginalPrice - row.price) / resolvedOriginalPrice) * 100)
+            : 50);
+
+        return {
+          id: `prod-bulk-${Date.now()}-${row.index}-${Math.random().toString(36).substr(2, 4)}`,
+          name: row.name,
+          category: row.category,
+          brand: isNearExpiry ? 'NasBaladna Farm Deals' : 'NasBaladna Farm Direct',
+          sku: isNearExpiry
+            ? `NB-EXP-${Math.floor(100 + Math.random() * 900)}`
+            : `NB-BLK-${Math.floor(1000 + Math.random() * 9000)}`,
+          basePrice: row.price,
+          baseWeight: row.weight,
+          weightOptions: [
+            { weight: row.weight, multiplier: 1.0 },
+            { weight: '1kg', multiplier: 1.85 },
+            { weight: '2kg', multiplier: 3.5 },
+          ],
+          stock: row.stock,
+          image: row.resolvedImage,
+          thumbnails: [row.resolvedImage],
+          description: isNearExpiry
+            ? `${row.name} - Near-Expiry Super Deal clearance! Quality guaranteed fresh from Doha farms. Consume by: ${
+                row.expiryDate || 'expiry date'
+              }.`
+            : `${row.name} freshly harvested from NasBaladna farm clusters with morning delivery.`,
+          origin: 'Qatar Agro Farms & Greenhouses',
+          farm: 'NasBaladna Cluster 1',
+          organic: true,
+          wholesalePrice: row.wholesalePrice,
+          wholesaleUnit: row.wholesaleUnit,
+          isWholesaleEligible: true,
+          isNearExpiry: isNearExpiry,
+          ...(isNearExpiry
+            ? {
+                expiryDate: row.expiryDate.trim() || 'Best before tomorrow',
+                originalPrice: resolvedOriginalPrice,
+                discountPercent: resolvedDiscount,
+              }
+            : {}),
+          benefits: isNearExpiry
+            ? [
+                `Massive ${resolvedDiscount}% discount to reduce food waste`,
+                `Freshness verified - ${row.expiryDate || 'Best before tomorrow'}`,
+                'Immediate cold-chain delivery to your doorstep',
+              ]
+            : ['Farm fresh', 'High nutrition', 'Immediate doorstep delivery'],
+          storageAdvice: isNearExpiry
+            ? `Refrigerate at 4°C immediately. Consume by ${row.expiryDate || 'indicated date'}.`
+            : 'Refrigerate at 4°C.',
+        };
+      });
 
       if (parsed.length > 0) {
         bulkAddProducts(parsed);
+        showToast(`Successfully imported ${parsed.length} products with photo assets & expiry dates!`);
         setActiveTab('products');
       } else {
-        showToast('No valid product rows found in CSV');
+        showToast('No valid product rows found to import.');
       }
-    } catch {
-      showToast('Error parsing CSV. Please check formatting.');
+    } catch (err) {
+      console.error(err);
+      showToast('Error processing bulk products. Please check formatting.');
     }
   };
 
@@ -1131,62 +1487,159 @@ export const AdminPortal: React.FC = () => {
                                 {p.sku}
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5 truncate">
+                            <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5 truncate">
                               <span className="capitalize">{p.category}</span>
                               <span>·</span>
                               <span>{p.baseWeight}</span>
                               <span>·</span>
                               <span className="text-emerald-400 truncate">{p.farm}</span>
                             </div>
+
+                            {/* Near Expiry badge shown for Near Expiry Super Deals */}
+                            {(p.category === 'near_expiry' || p.isNearExpiry) && (
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                <span className="px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold flex items-center gap-1 shadow-2xs">
+                                  <Zap className="w-2.5 h-2.5 text-rose-400 fill-rose-400" />
+                                  <span>Super Deal ({p.discountPercent || 50}% OFF)</span>
+                                </span>
+                                <span className="text-[10px] font-semibold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded-md border border-rose-900/60 flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>Expiry: {p.expiryDate || 'Best today or tomorrow'}</span>
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:justify-end gap-2 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
                           {isEditing ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <div>
-                                <label className="block text-[10px] text-slate-400">Retail</label>
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  value={tempPrice}
-                                  onChange={(e) => setTempPrice(parseFloat(e.target.value) || 0)}
-                                  className="w-16 sm:w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
-                                />
+                            <div className="flex flex-col gap-2.5 w-full sm:w-auto">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div>
+                                  <label className="block text-[10px] text-slate-400">Category</label>
+                                  <select
+                                    value={tempCategory}
+                                    onChange={(e) => setTempCategory(e.target.value as CategoryType)}
+                                    className="px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg text-white font-medium"
+                                  >
+                                    {categories.map((c) => (
+                                      <option key={c.id} value={c.id}>
+                                        {c.id === 'near_expiry' ? '⚡ ' : ''}{c.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-400">Retail</label>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={tempPrice}
+                                    onChange={(e) => setTempPrice(parseFloat(e.target.value) || 0)}
+                                    className="w-16 sm:w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-400">B2B Crate</label>
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    value={tempWholesale}
+                                    onChange={(e) => setTempWholesale(parseFloat(e.target.value) || 0)}
+                                    className="w-16 sm:w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-slate-400">Stock</label>
+                                  <input
+                                    type="number"
+                                    value={tempStock}
+                                    onChange={(e) => setTempStock(parseInt(e.target.value, 10) || 0)}
+                                    className="w-14 sm:w-16 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1 self-end mt-1">
+                                  <button
+                                    onClick={() => handleSaveEdit(p)}
+                                    className="p-1.5 sm:p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                                    title="Save Updates"
+                                  >
+                                    <Save className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingId(null)}
+                                    className="p-1.5 sm:p-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold"
+                                    title="Cancel"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-[10px] text-slate-400">B2B Crate</label>
-                                <input
-                                  type="number"
-                                  step="0.5"
-                                  value={tempWholesale}
-                                  onChange={(e) => setTempWholesale(parseFloat(e.target.value) || 0)}
-                                  className="w-16 sm:w-20 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] text-slate-400">Stock</label>
-                                <input
-                                  type="number"
-                                  value={tempStock}
-                                  onChange={(e) => setTempStock(parseInt(e.target.value, 10) || 0)}
-                                  className="w-14 sm:w-16 px-2 py-1 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-white"
-                                />
-                              </div>
-                              <button
-                                onClick={() => handleSaveEdit(p)}
-                                className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold mt-3"
-                                title="Save"
-                              >
-                                <Save className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setEditingId(null)}
-                                className="p-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold mt-3"
-                                title="Cancel"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
+
+                              {/* DEDICATED EXPIRY DATE OPTION - ONLY SHOWN FOR NEAR EXPIRY SUPER DEALS */}
+                              {(tempCategory === 'near_expiry' || p.category === 'near_expiry') && (
+                                <div className="p-2.5 rounded-xl bg-gradient-to-r from-rose-950/70 to-slate-900 border border-rose-500/70 space-y-2">
+                                  <div className="flex items-center gap-1.5 text-rose-300 font-bold text-[11px]">
+                                    <Zap className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
+                                    <span>Near Expiry Super Deals: Expiry Date & Clearance Pricing</span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div className="sm:col-span-2">
+                                      <label className="block text-[10px] text-rose-200 font-semibold mb-0.5">
+                                        Expiry Date / Best Before Timing <span className="text-rose-400">*</span>
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={tempExpiryDate}
+                                        onChange={(e) => setTempExpiryDate(e.target.value)}
+                                        placeholder="e.g. Best before today (8 PM) or Oct 15"
+                                        className="w-full px-2.5 py-1 text-xs bg-slate-900 border border-rose-500/70 rounded-lg text-white font-medium focus:ring-1 focus:ring-rose-500"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] text-rose-200 font-semibold mb-0.5">
+                                        Original Price (QAR)
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        value={tempOriginalPrice}
+                                        onChange={(e) => {
+                                          const val = parseFloat(e.target.value) || 0;
+                                          setTempOriginalPrice(val);
+                                          if (val > tempPrice) {
+                                            setTempDiscountPercent(Math.round(((val - tempPrice) / val) * 100));
+                                          }
+                                        }}
+                                        className="w-full px-2 py-1 text-xs bg-slate-900 border border-rose-500/70 rounded-lg text-white font-mono"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Quick shortcut pills */}
+                                  <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                    <span className="text-[10px] text-slate-400">Quick set:</span>
+                                    {[
+                                      'Best before today (8 PM)',
+                                      'Best before tomorrow',
+                                      'Expires in 2 days',
+                                      'Expires in 3 days',
+                                      'Best within 48h',
+                                    ].map((sc) => (
+                                      <button
+                                        key={sc}
+                                        type="button"
+                                        onClick={() => setTempExpiryDate(sc)}
+                                        className="px-2 py-0.5 bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-[10px] rounded border border-rose-700/60 transition-colors"
+                                      >
+                                        {sc}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
@@ -1359,6 +1812,84 @@ export const AdminPortal: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* DEDICATED NEAR EXPIRY SUPER DEALS OPTIONS - ONLY SHOWN WHEN CATEGORY IS NEAR_EXPIRY */}
+              {newCategory === 'near_expiry' && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/70 via-slate-900 to-amber-950/50 border-2 border-rose-500/70 space-y-3.5 ring-2 ring-rose-500/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-rose-400 fill-rose-400" />
+                      <h4 className="text-sm font-bold text-white">
+                        Near Expiry Super Deals Specifications
+                      </h4>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-black tracking-wider uppercase">
+                      Only for Near Expiry Category
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-200 leading-relaxed">
+                    Mention the exact freshness expiration date and pre-discount pricing so customers know when to consume it and see their savings!
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="block text-xs font-semibold text-rose-200">
+                        Expiry Date & Timing <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newExpiryDate}
+                        onChange={(e) => setNewExpiryDate(e.target.value)}
+                        placeholder="e.g. Best before today or tomorrow (Oct 12)"
+                        className="w-full px-3 py-2 bg-slate-900 border border-rose-500/60 rounded-xl text-white font-medium focus:ring-2 focus:ring-rose-500 text-xs"
+                      />
+                      {/* Shortcut buttons */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] text-slate-400">Quick set:</span>
+                        {[
+                          'Best before today (8 PM)',
+                          'Best before tomorrow',
+                          'Expires in 2 days',
+                          'Expires in 3 days',
+                          'Best within 48h',
+                        ].map((sc) => (
+                          <button
+                            key={sc}
+                            type="button"
+                            onClick={() => setNewExpiryDate(sc)}
+                            className="px-2 py-0.5 bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-[10px] rounded-md border border-rose-800 transition-colors"
+                          >
+                            {sc}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-rose-200">
+                        Original Pre-Discount Price (QAR)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={newOriginalPrice}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setNewOriginalPrice(val);
+                          if (val > newBasePrice) {
+                            setNewDiscountPercent(Math.round(((val - newBasePrice) / val) * 100));
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-slate-900 border border-rose-500/60 rounded-xl text-white font-mono focus:ring-2 focus:ring-rose-500 text-xs"
+                      />
+                      <span className="text-[10px] text-rose-300 block">
+                        Shows customer slashed price ({formatPrice(newOriginalPrice)} ➔ {formatPrice(newBasePrice)})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block font-semibold text-slate-300 mb-1">Description</label>
@@ -2318,48 +2849,650 @@ export const AdminPortal: React.FC = () => {
           </div>
         )}
         {activeTab === 'bulk' && (
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-            <div>
-              <h2 className="text-lg font-bold font-['Outfit'] text-white">
-                Bulk Add Products (Spreadsheet & CSV Import)
-              </h2>
-              <p className="text-xs text-slate-400">
-                Paste multiple lines of produce in CSV format to populate the inventory at once.
-              </p>
-              <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 mt-2">
-                Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-7 space-y-6">
+            {/* Header & Sub-Tabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-bold font-['Outfit'] text-white">
+                    Bulk Add Products & Photo Asset Studio
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-mono font-bold flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-rose-400 fill-rose-400" />
+                    <span>10 Columns: Expiry Dates & Images</span>
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Import multiple products at once with custom image URLs, uploaded photos, and freshness expiration dates for Near Expiry Super Deals!
+                </p>
+              </div>
+
+              {/* Sub-Tabs Selector */}
+              <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setBulkActiveSubTab('editor')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1.5 ${
+                    bulkActiveSubTab === 'editor'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>CSV Editor</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkActiveSubTab('preview')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1.5 ${
+                    bulkActiveSubTab === 'preview'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Visual Preview ({parsedBulkRows.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setBulkActiveSubTab('images')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-colors flex items-center gap-1.5 ${
+                    bulkActiveSubTab === 'images'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Uploaded Photos ({Object.keys(bulkUploadedImages).length})</span>
+                </button>
               </div>
             </div>
 
-            <div>
-              <textarea
-                rows={8}
-                value={bulkCsvText}
-                onChange={(e) => setBulkCsvText(e.target.value)}
-                className="w-full p-3 font-mono text-xs border border-slate-700 rounded-xl bg-slate-900 text-slate-100 focus:ring-2 focus:ring-emerald-500"
-                placeholder="Paste CSV rows here..."
-              />
+            {/* CURATED IMAGE PRESETS BAR - Easy Copy/Insert */}
+            <div className="bg-slate-900/80 rounded-2xl p-4 border border-slate-800 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Quick Image Preset Keywords (Click to copy keyword for CSV):</span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Paste keyword into the 8th column (<code className="text-emerald-400 font-mono">ImageUrl</code>)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                {CATEGORY_IMAGE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(preset.id);
+                      showToast(`Copied preset "${preset.id}" to clipboard!`);
+                    }}
+                    className="p-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500 hover:bg-slate-900 text-left transition-all group flex flex-col items-center gap-1.5"
+                    title={`Click to copy "${preset.id}" preset keyword`}
+                  >
+                    <img
+                      src={preset.image}
+                      alt={preset.name}
+                      className="w-10 h-10 rounded-lg object-contain bg-slate-900 p-0.5 border border-slate-800"
+                    />
+                    <div className="text-center w-full">
+                      <span className="block text-[10px] font-bold text-white truncate">{preset.name}</span>
+                      <span className="block text-[9px] font-mono text-emerald-400 font-bold group-hover:underline">
+                        {preset.id}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleProcessBulkCsv}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Import All to NasBaladna</span>
-              </button>
-              <button
-                onClick={() =>
-                  setBulkCsvText(
-                    `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit\nOrganic Hass Avocados Box, fruits, 15, 30, 500g, 120, 5kg Crate\nVine Cherry Tomatoes, vegetables, 4.2, 50, 250g, 38, 3kg Box\nFresh Coriander Bunch, herbs, 2.0, 60, 150g, 18, 2kg Box\nArtisan Milk Bread, bakery, 8.5, 20, 400g, 65, 10 Loaves\nFresh Pomegranate Juice, juices, 16.0, 25, 500ml, 140, 10 Bottles`
-                  )
+            {/* SUB-TAB 1: CSV EDITOR */}
+            {bulkActiveSubTab === 'editor' && (
+              <div className="space-y-4">
+                {/* NEAR EXPIRY SUPER DEALS CSV INSTRUCTION & TEMPLATE GUIDE CARD */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/40 via-slate-900 to-amber-950/30 border border-rose-500/30 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-rose-400 fill-rose-400 shrink-0" />
+                      <h4 className="text-xs sm:text-sm font-bold text-white">
+                        Near Expiry Super Deals: How to Mention Expiry Date in CSV
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full bg-rose-600/90 text-white text-[10px] font-extrabold uppercase">
+                        Zero Food Waste Clearance
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadNearExpiryCsvTemplate}
+                        className="px-2.5 py-1.5 bg-rose-900/80 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-semibold border border-rose-700/60 flex items-center gap-1.5 transition-colors"
+                        title="Download pre-filled CSV template formatted for Near Expiry Super Deals"
+                      >
+                        <Download className="w-3.5 h-3.5 text-rose-300" />
+                        <span>Download Near Expiry Template</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleLoadNearExpirySample}
+                        className="px-2.5 py-1.5 bg-amber-950/80 hover:bg-amber-900 text-amber-200 rounded-lg text-xs font-semibold border border-amber-800/60 flex items-center gap-1.5 transition-colors"
+                        title="Fill the CSV editor below with Near Expiry products and expiry dates"
+                      >
+                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Load Near Expiry Sample Batch</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    To bulk add items to <strong className="text-rose-300 font-bold">Near Expiry Super Deals</strong> with clear freshness expiration dates and discounted pricing, format your CSV columns like this:
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
+                    <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                      <span className="font-mono text-emerald-400 font-bold block mb-1">Column 2: Category</span>
+                      <code className="text-rose-300 font-bold bg-rose-950/60 px-1 py-0.5 rounded">near_expiry</code>
+                      <p className="text-slate-400 text-[10px] mt-1">Routes product directly to the Near Expiry Super Deals section on your website.</p>
+                    </div>
+
+                    <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+                      <span className="font-mono text-emerald-400 font-bold block mb-1">Column 3: Price</span>
+                      <code className="text-emerald-300 font-bold bg-emerald-950/60 px-1 py-0.5 rounded">6.5</code>
+                      <p className="text-slate-400 text-[10px] mt-1">The special clearance deal price in QAR that the customer pays.</p>
+                    </div>
+
+                    <div className="bg-slate-950/70 p-2.5 rounded-xl border border-rose-500/30 bg-rose-950/20">
+                      <span className="font-mono text-rose-300 font-bold block mb-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-rose-400" /> Column 9: ExpiryDate
+                      </span>
+                      <code className="text-rose-200 font-bold bg-rose-950/80 px-1 py-0.5 rounded block truncate">Best before today (8 PM)</code>
+                      <p className="text-slate-400 text-[10px] mt-1">Mention: <em>Expires in 2 days</em>, <em>Best before tomorrow</em>, <em>Oct 14</em>.</p>
+                    </div>
+
+                    <div className="bg-slate-950/70 p-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20">
+                      <span className="font-mono text-amber-300 font-bold block mb-1">Column 10: OriginalPrice</span>
+                      <code className="text-amber-200 font-bold bg-amber-950/80 px-1 py-0.5 rounded">14.0</code>
+                      <p className="text-slate-400 text-[10px] mt-1">Pre-discount price. Shows slashed price &amp; calculates <strong>54% OFF</strong> badge!</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                    <span className="text-[10px] text-slate-400">
+                      Pro Tip: Leave ExpiryDate and OriginalPrice blank for normal produce (<code className="text-emerald-400 font-mono">vegetables, fruits, dairy, bakery, herbs</code>).
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const example =
+                          `Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice\n` +
+                          `Local Organic Strawberries 250g, near_expiry, 6.5, 20, 250g, 35, 2kg Crate, fruits, Best before today 8 PM, 14.0\n` +
+                          `Fresh Full Cream Milk 1L, near_expiry, 4.0, 30, 1L, 25, 6 Bottles, dairy, Best before tomorrow, 8.5\n` +
+                          `Artisanal Sourdough Boule, near_expiry, 5.0, 15, 500g, 30, 6 Loaves, bakery, Expires in 2 days, 11.0`;
+                        navigator.clipboard.writeText(example);
+                        showToast('Copied Near Expiry CSV example to clipboard!');
+                      }}
+                      className="text-[11px] text-rose-300 hover:text-white font-semibold flex items-center gap-1 underline"
+                    >
+                      <span>Copy Near Expiry CSV format example</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto">
+                    <strong className="text-emerald-400">CSV Columns:</strong> Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, <span className="text-amber-400 underline font-bold">ImageUrl</span>, <span className="text-rose-400 underline font-bold">ExpiryDate</span>, <span className="text-rose-400 underline font-bold">OriginalPrice</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadCsvTemplate}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      title="Download template CSV with ExpiryDate and ImageUrl column for Excel or Google Sheets"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>General Template</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => bulkFileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      title="Upload photos from computer to auto-match with your products"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Upload Photos ({Object.keys(bulkUploadedImages).length})</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <textarea
+                    rows={9}
+                    value={bulkCsvText}
+                    onChange={(e) => setBulkCsvText(e.target.value)}
+                    className="w-full p-3 font-mono text-xs border border-slate-700 rounded-xl bg-slate-900 text-slate-100 focus:ring-2 focus:ring-emerald-500 leading-relaxed"
+                    placeholder="Name, Category, Price, Stock, Weight, WholesalePrice, WholesaleUnit, ImageUrl, ExpiryDate, OriginalPrice..."
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
+                    <span>
+                      {parsedBulkRows.length} valid product row{parsedBulkRows.length === 1 ? '' : 's'} detected in spreadsheet (
+                      {parsedBulkRows.filter((r) => r.isNearExpiry).length} Near Expiry Deals with dates)
+                    </span>
+                    <span className="text-slate-400">
+                      Supports web URLs (<code className="text-emerald-300 font-mono">https://...</code>), preset keywords (<code className="text-emerald-300 font-mono">vegetables</code>), or uploaded photos
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleProcessBulkCsv}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Import All {parsedBulkRows.length} Products to Store</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBulkActiveSubTab('preview')}
+                    className="px-4 py-2.5 bg-slate-850 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl border border-slate-700 flex items-center gap-1.5 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Review Photos & Rows ({parsedBulkRows.length})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadNearExpirySample}
+                    className="px-4 py-2.5 bg-rose-950/70 hover:bg-rose-900 text-rose-200 font-semibold text-xs rounded-xl border border-rose-800 flex items-center gap-1.5 transition-colors"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Load Near Expiry Sample Batch</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadStandardSample}
+                    className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs rounded-xl border border-slate-800 transition-colors"
+                  >
+                    Load Standard Sample Batch
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 2: VISUAL PREVIEW TABLE */}
+            {bulkActiveSubTab === 'preview' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-emerald-400" />
+                      <span>Visual Pre-Import Inspection ({parsedBulkRows.length} Products)</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Inspect and edit photos, expiration dates, and discount rates before importing. Click any row photo to replace or upload!
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBulkActiveSubTab('editor')}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-800 flex items-center gap-1.5"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Back to CSV</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleProcessBulkCsv}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Confirm & Import All</span>
+                    </button>
+                  </div>
+                </div>
+
+                {parsedBulkRows.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-xs bg-slate-900/50 rounded-2xl border border-slate-800">
+                    No products detected in CSV editor. Switch to the CSV editor to add rows.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 text-[11px] font-semibold uppercase">
+                        <tr>
+                          <th className="p-3 w-10 text-center">#</th>
+                          <th className="p-3 w-20">Photo</th>
+                          <th className="p-3">Product Name</th>
+                          <th className="p-3">Category</th>
+                          <th className="p-3">Deal / Price</th>
+                          <th className="p-3">Stock &amp; Weight</th>
+                          <th className="p-3 min-w-[210px]">Expiry Date (Near Expiry)</th>
+                          <th className="p-3 min-w-[130px]">Pre-Discount &amp; % Off</th>
+                          <th className="p-3 text-right">Photo Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800 text-slate-200">
+                        {parsedBulkRows.map((row) => (
+                          <tr
+                            key={row.index}
+                            className={`transition-colors ${
+                              row.isNearExpiry
+                                ? 'bg-rose-950/20 hover:bg-rose-950/30'
+                                : 'hover:bg-slate-850/60'
+                            }`}
+                          >
+                            <td className="p-3 text-center text-slate-500 font-mono text-[11px]">{row.index}</td>
+                            <td className="p-3">
+                              <div className="relative group w-14 h-14 rounded-xl bg-slate-950 p-1 border border-slate-800 flex items-center justify-center overflow-hidden">
+                                <img
+                                  src={row.resolvedImage}
+                                  alt={row.name}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    // fallback if broken URL was given
+                                    (e.target as HTMLImageElement).src = categoryVegImg;
+                                  }}
+                                />
+                                {bulkRowImageOverrides[row.index] && (
+                                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-slate-900" />
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 font-bold text-white">
+                              <div>{row.name}</div>
+                              {row.rawImage && (
+                                <span className="text-[10px] font-mono text-slate-400 block truncate max-w-[140px]">
+                                  src: {row.rawImage}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              {row.isNearExpiry ? (
+                                <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 flex items-center gap-1 w-fit shadow-2xs">
+                                  <Zap className="w-2.5 h-2.5 fill-rose-400 text-rose-400" />
+                                  <span>near_expiry</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md capitalize font-mono text-[10px] font-bold bg-slate-950 text-emerald-400 border border-slate-800">
+                                  {row.category}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono font-bold text-emerald-400">
+                              {formatPrice(row.price)}
+                            </td>
+                            <td className="p-3">
+                              <span className="px-1.5 py-0.5 rounded bg-slate-950 text-slate-300 font-mono text-[11px] font-bold block w-fit">
+                                {row.stock} in stock
+                              </span>
+                              <span className="text-[11px] text-slate-400 block mt-0.5">{row.weight}</span>
+                            </td>
+                            {/* EXPIRY DATE COLUMN */}
+                            <td className="p-3">
+                              {row.isNearExpiry ? (
+                                <div className="space-y-1.5 max-w-[210px]">
+                                  <div className="flex items-center gap-1.5 bg-slate-950 border border-rose-500/50 rounded-lg px-2 py-1">
+                                    <Clock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                    <input
+                                      type="text"
+                                      value={row.expiryDate}
+                                      onChange={(e) =>
+                                        setBulkRowExpiryOverrides((prev) => ({
+                                          ...prev,
+                                          [row.index]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="e.g. Best before tomorrow"
+                                      className="w-full bg-transparent text-[11px] text-rose-200 font-medium focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {['Today 8 PM', 'Tomorrow', 'In 2 days', 'In 3 days'].map((pill) => (
+                                      <button
+                                        key={pill}
+                                        type="button"
+                                        onClick={() =>
+                                          setBulkRowExpiryOverrides((prev) => ({
+                                            ...prev,
+                                            [row.index]: pill.startsWith('In')
+                                              ? `Expires ${pill.toLowerCase()}`
+                                              : `Best before ${pill.toLowerCase()}`,
+                                          }))
+                                        }
+                                        className="px-1.5 py-0.5 rounded text-[9px] bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80 transition-colors"
+                                      >
+                                        {pill}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-slate-500 text-[11px] italic">— (Standard)</span>
+                              )}
+                            </td>
+                            {/* PRE-DISCOUNT & % OFF COLUMN */}
+                            <td className="p-3">
+                              {row.isNearExpiry ? (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-slate-400">Was:</span>
+                                    <input
+                                      type="number"
+                                      step="0.5"
+                                      value={row.originalPrice || ''}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setBulkRowOriginalPriceOverrides((prev) => ({
+                                          ...prev,
+                                          [row.index]: val,
+                                        }));
+                                      }}
+                                      className="w-16 px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-xs font-mono text-white text-right"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] font-bold text-rose-300 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800 flex items-center gap-0.5">
+                                      <Zap className="w-2.5 h-2.5 fill-rose-400" />
+                                      <span>{row.discountPercent}% OFF</span>
+                                    </span>
+                                    {row.originalPrice > row.price && (
+                                      <span className="text-[10px] text-slate-500 line-through font-mono">
+                                        {formatPrice(row.originalPrice)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-slate-500 text-[11px] italic">—</span>
+                              )}
+                            </td>
+                            {/* PHOTO ACTION */}
+                            <td className="p-3 text-right">
+                              <div className="inline-flex items-center gap-1.5">
+                                {/* Choose preset dropdown for this row */}
+                                <select
+                                  value=""
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val) {
+                                      const preset = CATEGORY_IMAGE_PRESETS.find((p) => p.id === val);
+                                      if (preset) {
+                                        setBulkRowImageOverrides((prev) => ({
+                                          ...prev,
+                                          [row.index]: preset.image,
+                                        }));
+                                        showToast(`Attached ${preset.name} to ${row.name}`);
+                                      }
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-[10px] text-slate-300 focus:ring-1 focus:ring-emerald-500"
+                                >
+                                  <option value="">Presets...</option>
+                                  {CATEGORY_IMAGE_PRESETS.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {/* Direct Photo Upload button for this row */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBulkSelectedRowForImage(row.index);
+                                    bulkSingleRowFileInputRef.current?.click();
+                                  }}
+                                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-colors"
+                                  title={`Upload image file for ${row.name}`}
+                                >
+                                  <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-TAB 3: UPLOADED PHOTOS MANAGER */}
+            {bulkActiveSubTab === 'images' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-emerald-400" />
+                      <span>Device Photo Asset Library ({Object.keys(bulkUploadedImages).length} images)</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Upload multiple product photos from your device at once. They will automatically pair with your products by filename!
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => bulkFileInputRef.current?.click()}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Upload More Photos</span>
+                    </button>
+
+                    {Object.keys(bulkUploadedImages).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBulkUploadedImages({});
+                          setBulkRowImageOverrides({});
+                          showToast('Cleared uploaded photo library');
+                        }}
+                        className="px-3 py-2 bg-slate-900 hover:bg-rose-950/70 text-slate-400 hover:text-rose-300 rounded-xl text-xs font-semibold border border-slate-800 transition-colors"
+                      >
+                        Clear All Photos
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {Object.keys(bulkUploadedImages).length === 0 ? (
+                  <div
+                    onClick={() => bulkFileInputRef.current?.click()}
+                    className="p-10 border-2 border-dashed border-slate-800 hover:border-emerald-500/60 rounded-3xl text-center bg-slate-900/40 cursor-pointer transition-colors space-y-3"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-slate-800 text-emerald-400 flex items-center justify-center mx-auto">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Click or Drag & Drop Photos Here</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Supports PNG, JPG, WEBP. Select multiple files at once.
+                      </p>
+                    </div>
+                    <span className="inline-block px-3 py-1 bg-emerald-950 text-emerald-400 text-xs font-semibold rounded-lg border border-emerald-800">
+                      Select Files From Computer
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    {Object.entries(bulkUploadedImages)
+                      // Filter duplicates caused by both raw and base keys
+                      .filter((entry, idx, self) => self.findIndex((e) => e[1].dataUrl === entry[1].dataUrl) === idx)
+                      .map(([key, item]) => (
+                        <div
+                          key={key}
+                          className="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 space-y-2 relative group"
+                        >
+                          <div className="w-full aspect-square rounded-xl bg-slate-950 p-1 flex items-center justify-center overflow-hidden">
+                            <img src={item.dataUrl} alt={item.filename} className="w-full h-full object-contain" />
+                          </div>
+                          <div>
+                            <span className="block text-[11px] font-bold text-white truncate" title={item.filename}>
+                              {item.filename}
+                            </span>
+                            <span className="block text-[10px] text-emerald-400 font-mono truncate">
+                              key: {key}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = { ...bulkUploadedImages };
+                              delete next[key];
+                              setBulkUploadedImages(next);
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-slate-900/90 text-slate-400 hover:text-rose-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove this photo"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hidden Input: Multi-File Bulk Upload */}
+            <input
+              type="file"
+              ref={bulkFileInputRef}
+              multiple
+              accept="image/*"
+              onChange={handleBulkImageFilesUpload}
+              className="hidden"
+            />
+
+            {/* Hidden Input: Single-Row Individual Photo Upload */}
+            <input
+              type="file"
+              ref={bulkSingleRowFileInputRef}
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && bulkSelectedRowForImage !== null) {
+                  handleRowImageFileUpload(bulkSelectedRowForImage, file);
                 }
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl"
-              >
-                Load Sample Batch
-              </button>
-            </div>
+                if (e.target) e.target.value = '';
+              }}
+              className="hidden"
+            />
           </div>
         )}
 
