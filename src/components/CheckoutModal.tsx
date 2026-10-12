@@ -283,9 +283,18 @@ export const CheckoutModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Street, Villa / Building & Apt
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-700">
+                    Street, Villa / Building & Apt
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowBluePlateHelper(!showBluePlateHelper)}
+                    className="text-[11px] font-bold text-sky-700 hover:text-sky-900 flex items-center gap-1 hover:underline"
+                  >
+                    <span>🇶🇦 Qatar Blue Plate Assistant</span>
+                  </button>
+                </div>
                 <input
                   type="text"
                   required
@@ -297,11 +306,158 @@ export const CheckoutModal: React.FC = () => {
               </div>
             </div>
 
+            {/* Qatar National Address (Blue Plate) Helper Drawer */}
+            {showBluePlateHelper && (
+              <div className="p-3.5 rounded-2xl bg-sky-50/90 border border-sky-200 text-sky-950 space-y-2 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-sky-900">
+                    <Building className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Qatar National Address Blue Plate (اللوحة الزرقاء)</span>
+                  </div>
+                  <span className="text-[10px] text-sky-600 font-mono">Official Qatar Addressing</span>
+                </div>
+                <p className="text-[11px] text-sky-800">
+                  Enter the 3 numbers from your blue building plate outside your gate/entrance to help our driver find you instantly:
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <label className="block text-[10px] font-bold text-sky-900 mb-0.5">Zone No. (المنطقة)</label>
+                    <input
+                      type="text"
+                      value={bluePlateZone}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBluePlateZone(val);
+                        setAddress(`Building ${bluePlateBuilding}, Street ${bluePlateStreet}, Zone ${val}`);
+                      }}
+                      placeholder="e.g. 66"
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-sky-300 text-center font-mono font-bold text-sky-950"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-sky-900 mb-0.5">Street No. (الشارع)</label>
+                    <input
+                      type="text"
+                      value={bluePlateStreet}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBluePlateStreet(val);
+                        setAddress(`Building ${bluePlateBuilding}, Street ${val}, Zone ${bluePlateZone}`);
+                      }}
+                      placeholder="e.g. 902"
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-sky-300 text-center font-mono font-bold text-sky-950"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-sky-900 mb-0.5">Building No. (المبنى)</label>
+                    <input
+                      type="text"
+                      value={bluePlateBuilding}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBluePlateBuilding(val);
+                        setAddress(`Building ${val}, Street ${bluePlateStreet}, Zone ${bluePlateZone}`);
+                      }}
+                      placeholder="e.g. 24"
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-white border border-sky-300 text-center font-mono font-bold text-sky-950"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Doorstep & Contactless Drop-off Preferences */}
+            <div className="space-y-2 pt-1">
+              <label className="block text-xs font-semibold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Doorstep & Drop-off Preference</span>
+                </span>
+                <span className="text-[10px] text-slate-400">Driver follows your instructions</span>
+              </label>
+
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDropoffPreference('hand_to_me')}
+                  className={`p-2 rounded-xl border text-center transition-all text-xs font-semibold flex flex-col items-center gap-1 ${
+                    dropoffPreference === 'hand_to_me'
+                      ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-600/20'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Home className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-[11px] leading-tight">Hand to Me</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDropoffPreference('doorstep')}
+                  className={`p-2 rounded-xl border text-center transition-all text-xs font-semibold flex flex-col items-center gap-1 ${
+                    dropoffPreference === 'doorstep'
+                      ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-600/20'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-[11px] leading-tight">Leave at Door</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDropoffPreference('security')}
+                  className={`p-2 rounded-xl border text-center transition-all text-xs font-semibold flex flex-col items-center gap-1 ${
+                    dropoffPreference === 'security'
+                      ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-600/20'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-[11px] leading-tight">Building Security</span>
+                </button>
+              </div>
+
+              {/* Doorbell Preference Toggle */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <div className="flex items-center gap-2">
+                  {doorbellPreference === 'ring' ? (
+                    <Bell className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <BellOff className="w-4 h-4 text-rose-500" />
+                  )}
+                  <div>
+                    <span className="font-semibold text-slate-800 block text-[11px]">
+                      {doorbellPreference === 'ring' ? 'Ring Doorbell & Knock' : 'Silent Delivery (No Ringing)'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {doorbellPreference === 'ring'
+                        ? 'Courier will ring bell upon delivery'
+                        : 'Courier will text WhatsApp or call quietly upon arrival'}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDoorbellPreference(doorbellPreference === 'ring' ? 'silent' : 'ring')
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                    doorbellPreference === 'ring'
+                      ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                      : 'bg-rose-50 border-rose-200 text-rose-800'
+                  }`}
+                >
+                  {doorbellPreference === 'ring' ? 'Switch to Silent' : '✓ Silent Active'}
+                </button>
+              </div>
+            </div>
+
             {/* Courier Specific Delivery Notes */}
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center gap-1">
                 <FileText className="w-3.5 h-3.5 text-slate-400" />
-                <span>Courier Delivery Notes (Gate code, buzzer, porch drop)</span>
+                <span>Special Access Notes (Gate code, buzzer, porch instruction)</span>
               </label>
               <input
                 type="text"
@@ -313,105 +469,171 @@ export const CheckoutModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 2: Delivery Speed & Time Slot */}
+          {/* Section 2: Delivery Speed & Fulfillment Mode */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
                 <Clock className="w-4 h-4 text-emerald-600" />
-                <span>2. Delivery Speed & Time Window</span>
+                <span>2. Delivery Speed & Service Level</span>
               </div>
               <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 Cold-Chain Refrigerated
               </span>
             </div>
 
-            {/* Express 60-Minute Delivery Highlight Card */}
-            <div
-              onClick={() => setIsExpressDelivery(!isExpressDelivery)}
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                isExpressDelivery
-                  ? 'bg-gradient-to-r from-amber-50 to-orange-50/60 border-amber-400 ring-2 ring-amber-400/30'
-                  : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-                      isExpressDelivery
-                        ? 'bg-amber-500 text-white shadow-xs'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}
-                  >
-                    <Zap className="w-4 h-4 fill-current" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900">
-                        ⚡ Express 60-Minute Priority Direct Delivery
-                      </span>
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded-full">
-                        FASTEST
-                      </span>
+            {/* Service Level Selection Cards (3 Modes) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Option A: Express 60-Minute */}
+              <div
+                onClick={() => {
+                  setServiceType('express');
+                  setIsExpressDelivery(true);
+                }}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                  serviceType === 'express'
+                    ? 'bg-gradient-to-br from-amber-50 to-orange-50/60 border-amber-400 ring-2 ring-amber-400/30 shadow-xs'
+                    : 'bg-slate-50/80 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+                      <Zap className="w-3.5 h-3.5 fill-current" />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Direct cold-chain courier dispatch straight to your door in under 60 minutes.
-                    </p>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded-full">
+                      60 MINS
+                    </span>
                   </div>
+                  <h4 className="text-xs font-bold text-slate-900">Express Priority</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+                    Direct refrigerated van departs immediately for your door.
+                  </p>
                 </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-bold font-mono text-slate-900 block">
-                    +QAR 15.00
+                <div className="pt-2 mt-2 border-t border-slate-200/80 flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono text-amber-900">+QAR 15.00</span>
+                  <span className={`text-[10px] font-bold ${serviceType === 'express' ? 'text-amber-700' : 'text-slate-400'}`}>
+                    {serviceType === 'express' ? '✓ Active' : 'Select'}
                   </span>
-                  <span
-                    className={`text-[10px] font-bold ${
-                      isExpressDelivery ? 'text-amber-700' : 'text-slate-400'
-                    }`}
-                  >
-                    {isExpressDelivery ? '✓ Selected' : 'Tap to Add'}
+                </div>
+              </div>
+
+              {/* Option B: Standard Scheduled Slot */}
+              <div
+                onClick={() => {
+                  setServiceType('standard');
+                  setIsExpressDelivery(false);
+                }}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                  serviceType === 'standard'
+                    ? 'bg-emerald-50/60 border-emerald-600 ring-2 ring-emerald-600/30 shadow-xs'
+                    : 'bg-slate-50/80 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                      <Clock className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded-full">
+                      SCHEDULED
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">Scheduled Slot</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+                    Select a convenient 2-3 hour morning, afternoon, or evening window.
+                  </p>
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-200/80 flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono text-emerald-900">
+                    {cartTotal >= 50 ? 'FREE' : formatPrice(selectedSlot.fee || 5.0)}
+                  </span>
+                  <span className={`text-[10px] font-bold ${serviceType === 'standard' ? 'text-emerald-700' : 'text-slate-400'}`}>
+                    {serviceType === 'standard' ? '✓ Active' : 'Select'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Option C: Eco-Green Consolidated Batch Delivery */}
+              <div
+                onClick={() => {
+                  setServiceType('eco_green');
+                  setIsExpressDelivery(false);
+                }}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                  serviceType === 'eco_green'
+                    ? 'bg-teal-50/70 border-teal-600 ring-2 ring-teal-600/30 shadow-xs'
+                    : 'bg-slate-50/80 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+                      <Leaf className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] font-bold text-teal-700 bg-teal-100 px-1.5 py-0.2 rounded-full">
+                      ECO GREEN
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">Green Batch Route</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+                    Groups deliveries with neighbors to reduce Qatar emissions & fuel.
+                  </p>
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-200/80 flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono text-teal-900">
+                    {cartTotal >= 50 ? 'FREE' : 'QAR 2.00 (Save QAR 3)'}
+                  </span>
+                  <span className={`text-[10px] font-bold ${serviceType === 'eco_green' ? 'text-teal-700' : 'text-slate-400'}`}>
+                    {serviceType === 'eco_green' ? '✓ Active' : 'Select'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Standard Scheduled Eco Slots (Hidden or Dimmed if Express chosen) */}
-            {!isExpressDelivery ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {DELIVERY_SLOTS.map((slot) => {
-                  const isSelected = deliverySlot === slot.id;
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => setDeliverySlot(slot.id)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        isSelected
-                          ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/30'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-slate-900">{slot.title}</span>
-                        <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded">
-                          {slot.badge}
+            {/* Scheduled Slots Grid (Active for standard & eco_green) */}
+            {serviceType !== 'express' ? (
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[11px] font-semibold text-slate-700 block">
+                  Select Delivery Time Window:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {DELIVERY_SLOTS.map((slot) => {
+                    const isSelected = deliverySlot === slot.id;
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setDeliverySlot(slot.id)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-600/30'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-slate-900">{slot.title}</span>
+                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                            {slot.badge}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500">
+                          {cartTotal >= 50
+                            ? 'Free (Order > 50)'
+                            : serviceType === 'eco_green'
+                            ? 'QAR 2.00 (Eco-Discounted)'
+                            : slot.fee === 0
+                            ? 'Free Delivery'
+                            : formatPrice(slot.fee)}
                         </span>
-                      </div>
-                      <span className="text-[11px] text-slate-500">
-                        {cartTotal >= 50
-                          ? 'Free (Order > 50)'
-                          : slot.fee === 0
-                          ? 'Free Delivery'
-                          : formatPrice(slot.fee)}
-                      </span>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0 fill-amber-600" />
-                <span>Express courier priority activated! Driver departs immediately from transit hub.</span>
+                <span>Express courier priority activated! Courier departs immediately from cold transit hub upon order.</span>
               </div>
             )}
           </div>

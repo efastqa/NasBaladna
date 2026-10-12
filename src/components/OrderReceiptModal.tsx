@@ -157,7 +157,11 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
         <strong>Billed To Customer:</strong> ${order.customerName}<br/>
         <strong>Contact:</strong> ${order.phone}<br/>
         <strong>Destination:</strong> ${order.address}, ${order.district}<br/>
-        <strong>Delivery Slot:</strong> ${order.deliverySlot}
+        ${order.bluePlateInfo ? `<strong>Qatar Blue Plate:</strong> Zone ${order.bluePlateInfo.zone} · Street ${order.bluePlateInfo.street} · Building ${order.bluePlateInfo.building}<br/>` : ''}
+        <strong>Delivery Slot:</strong> ${order.deliverySlot}<br/>
+        <strong>Service Level:</strong> ${order.isExpress || order.serviceType === 'express' ? '⚡ Express 60-Min' : order.serviceType === 'eco_green' ? '🌱 Eco-Green Batch' : 'Standard Scheduled'}<br/>
+        ${order.dropoffPreference ? `<strong>Drop-off:</strong> ${order.dropoffPreference === 'doorstep' ? 'Leave at Doorstep' : order.dropoffPreference === 'security' ? 'Leave with Security' : 'Hand to Customer'}<br/>` : ''}
+        ${order.deliveryNotes ? `<strong>Special Notes:</strong> ${order.deliveryNotes}<br/>` : ''}
       </div>
     </div>
 
@@ -342,9 +346,20 @@ Customer Support: +974 7731 5415`;
               <span className="font-bold text-slate-900 block">{order.customerName}</span>
               <span className="font-mono text-slate-600 block">{order.phone}</span>
               <span className="text-slate-400 block mt-2">Delivery Address:</span>
-              <span className="text-slate-800 block line-clamp-2">{order.address}, {order.district}</span>
-              <span className="text-slate-400 block mt-1">Delivery Slot:</span>
+              <span className="text-slate-800 block">{order.address}, {order.district}</span>
+              {order.bluePlateInfo && (
+                <span className="text-sky-700 block font-mono text-[10px] mt-0.5 font-bold">
+                  🇶🇦 Blue Plate: Zone {order.bluePlateInfo.zone} · Street {order.bluePlateInfo.street} · Bldg {order.bluePlateInfo.building}
+                </span>
+              )}
+              <span className="text-slate-400 block mt-1">Delivery Slot & Speed:</span>
               <span className="font-medium text-slate-800">{order.deliverySlot}</span>
+              {order.dropoffPreference && (
+                <span className="text-[10px] text-emerald-800 font-semibold block mt-0.5">
+                  Pref: {order.dropoffPreference === 'doorstep' ? 'Leave at Doorstep' : order.dropoffPreference === 'security' ? 'Leave with Security' : 'Hand to Customer'}
+                  {order.doorbellPreference === 'silent' ? ' · 🔕 Silent Drop' : ''}
+                </span>
+              )}
             </div>
           </div>
 
