@@ -80,7 +80,7 @@ export const CheckoutModal: React.FC = () => {
   if (serviceType === 'eco_green' && baseDeliveryFee > 0) {
     baseDeliveryFee = 2.0; // Eco-green discounted fee
   }
-  const expressFee = serviceType === 'express' || isExpressDelivery ? 15.0 : 0;
+  const expressFee = serviceType === 'express' || isExpressDelivery ? 10.0 : 0;
   const deliveryFee = baseDeliveryFee + expressFee;
   const finalTotal = cartTotal + deliveryFee;
 
@@ -510,7 +510,7 @@ export const CheckoutModal: React.FC = () => {
                   </p>
                 </div>
                 <div className="pt-2 mt-2 border-t border-slate-200/80 flex items-center justify-between">
-                  <span className="text-xs font-bold font-mono text-amber-900">+QAR 15.00</span>
+                  <span className="text-xs font-bold font-mono text-amber-900">+QAR 10.00</span>
                   <span className={`text-[10px] font-bold ${serviceType === 'express' ? 'text-amber-700' : 'text-slate-400'}`}>
                     {serviceType === 'express' ? '✓ Active' : 'Select'}
                   </span>

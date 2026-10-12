@@ -22,6 +22,7 @@ import {
 } from '../data/mockData';
 import { api } from '../services/api';
 import { NotificationService } from '../services/notifications';
+import { firestoreService } from '../services/firestoreService';
 
 // Persistent cross-tab communication channel (never close synchronously)
 const persistentOrdersChannel =
@@ -359,13 +360,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let isMounted = true;
     const syncBackend = async () => {
       try {
-        const [serverProds, serverCats, serverOrders, serverDriver, serverLogs] = await Promise.allSettled([
-          api.getProducts(),
-          api.getCategories(),
-          api.getOrders(),
-          api.getDriver(),
-          api.getInventoryLogs(),
-        ]);
+        const [serverProds, serverCats, serverOrders, serverDriver, serverLogs, cloudOrders] =
+          await Promise.allSettled([
+            api.getProducts(),
+            api.getCategories(),
+            api.getOrders(),
+            api.getDriver(),
+            api.getInventoryLogs(),
+            firestoreService.fetchOrders(),
+          ]);
 
         if (!isMounted) return;
 
@@ -375,9 +378,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (serverCats.status === 'fulfilled' && serverCats.value.length > 0) {
           setCategories(serverCats.value);
         }
-        if (serverOrders.status === 'fulfilled' && serverOrders.value.length > 0) {
-          setOrdersHistory(serverOrders.value);
+
+        // Merge orders from Firestore and Backend API
+        const mergedOrders = new Map<string, Order>();
+        if (serverOrders.status === 'fulfilled' && Array.isArray(serverOrders.value)) {
+          serverOrders.value.forEach((o) => mergedOrders.set(o.id, o));
         }
+        if (cloudOrders.status === 'fulfilled' && Array.isArray(cloudOrders.value)) {
+          cloudOrders.value.forEach((o) => mergedOrders.set(o.id, o));
+        }
+        if (mergedOrders.size > 0) {
+          const list = Array.from(mergedOrders.values());
+          list.sort((a, b) => {
+            const timeA = (a as any).createdTimestamp || parseInt(a.id.replace(/\D/g, ''), 10) || 0;
+            const timeB = (b as any).createdTimestamp || parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+            return timeB - timeA;
+          });
+          setOrdersHistory(list);
+        }
+
         if (serverDriver.status === 'fulfilled') {
           setDeliveryDriver(serverDriver.value);
         }
@@ -432,14 +451,53 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // REAL-TIME ORDER SYNCHRONIZATION:
-  // 1. Server-Sent Events (SSE) stream from backend (/api/orders/stream)
-  // 2. Persistent Cross-Tab BroadcastChannel (0ms zero latency across tabs)
-  // 3. StorageEvent cross-tab sync fallback
-  // 4. Fast polling backup (every 2 seconds)
+  // 1. Google Cloud Firestore live listener (instant reflection across Phone & Laptop)
+  // 2. Server-Sent Events (SSE) stream from backend (/api/orders/stream)
+  // 3. Persistent Cross-Tab BroadcastChannel (0ms zero latency across tabs)
+  // 4. StorageEvent cross-tab sync fallback
+  // 5. Fast background polling backup (every 1 second)
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Cross-tab BroadcastChannel for 0ms zero-latency reflection across browser tabs
+    // 1. Google Cloud Firestore Real-Time WebSocket Channel (Multi-device phone-to-admin reflection)
+    const unsubscribeFirestore = firestoreService.subscribeOrders(
+      (firestoreOrders) => {
+        if (!isMounted) return;
+        setOrdersHistory((prev) => {
+          const prevMap = new Map(prev.map((o) => [o.id, o]));
+          const newOrdersFromRemote = firestoreOrders.filter(
+            (fo) => !prevMap.has(fo.id) && !prev.some((p) => p.orderNumber === fo.orderNumber)
+          );
+
+          if (newOrdersFromRemote.length > 0) {
+            newOrdersFromRemote.forEach((ord) => {
+              processIncomingOrder(ord);
+            });
+            return [...newOrdersFromRemote, ...prev];
+          }
+
+          // Check if any order statuses changed in Firestore
+          const hasDiff = firestoreOrders.some((fo) => {
+            const local = prevMap.get(fo.id);
+            return local && local.status !== fo.status;
+          });
+          if (hasDiff) {
+            return prev.map((o) => {
+              const remote = firestoreOrders.find((fo) => fo.id === o.id);
+              return remote ? { ...o, status: remote.status } : o;
+            });
+          }
+
+          return prev;
+        });
+      },
+      (newlyAddedOrder) => {
+        if (!isMounted) return;
+        processIncomingOrder(newlyAddedOrder);
+      }
+    );
+
+    // 2. Cross-tab BroadcastChannel for 0ms zero-latency reflection across browser tabs
     if (persistentOrdersChannel) {
       persistentOrdersChannel.onmessage = (event) => {
         if (!isMounted) return;
@@ -451,7 +509,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
     }
 
-    // 2. Storage event fallback for cross-tab communication
+    // 3. Storage event fallback for cross-tab communication
     const handleStorageEvent = (e: StorageEvent) => {
       if (!isMounted) return;
       if (e.key === 'nb_orders_sync_ping' && e.newValue) {
@@ -469,7 +527,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     window.addEventListener('storage', handleStorageEvent);
 
-    // 3. Server-Sent Events (SSE) stream for instant server-push across all tabs & devices
+    // 4. Server-Sent Events (SSE) stream for instant server-push across all tabs & devices
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource('/api/orders/stream');
@@ -496,7 +554,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // EventSource fallback
     }
 
-    // 4. Fast Background Server Polling (every 2.0s) as guaranteed fallback
+    // 5. Fast Background Server Polling (every 1.0s) as guaranteed fallback
     const pollBackendOrders = async () => {
       try {
         const serverOrders = await api.getOrders();
@@ -534,7 +592,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     };
 
-    const pollInterval = setInterval(pollBackendOrders, 2000);
+    const pollInterval = setInterval(pollBackendOrders, 1000);
 
     // Immediate check on tab focus/visibility
     const handleVisibility = () => {
@@ -547,6 +605,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => {
       isMounted = false;
+      unsubscribeFirestore();
       eventSource?.close();
       window.removeEventListener('storage', handleStorageEvent);
       clearInterval(pollInterval);
@@ -598,11 +657,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const refreshOrders = async () => {
     try {
-      const orders = await api.getOrders();
-      if (Array.isArray(orders)) {
-        setOrdersHistory(orders);
-        showToast(`Refreshed ${orders.length} orders directly from server`);
+      const [fsOrders, apiOrders] = await Promise.allSettled([
+        firestoreService.fetchOrders(),
+        api.getOrders(),
+      ]);
+      const mergedMap = new Map<string, Order>();
+      if (fsOrders.status === 'fulfilled') {
+        fsOrders.value.forEach((o) => mergedMap.set(o.id, o));
       }
+      if (apiOrders.status === 'fulfilled' && Array.isArray(apiOrders.value)) {
+        apiOrders.value.forEach((o) => {
+          if (!mergedMap.has(o.id)) mergedMap.set(o.id, o);
+        });
+      }
+      const combined = Array.from(mergedMap.values());
+      combined.sort((a, b) => {
+        const timeA = (a as any).createdTimestamp || parseInt(a.id.replace(/\D/g, ''), 10) || 0;
+        const timeB = (b as any).createdTimestamp || parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+        return timeB - timeA;
+      });
+      if (combined.length > 0) {
+        setOrdersHistory(combined);
+      }
+      showToast(`Refreshed ${combined.length} live orders from cloud`);
     } catch {
       showToast('Could not reach backend to refresh orders');
     }
@@ -775,10 +852,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       NotificationService.sendAutomatedNotification(updated, 'sms', status);
     }
     api.updateOrderStatus(orderId, status).catch((e) => console.warn('API updateOrderStatus:', e));
+    firestoreService.updateOrderStatus(orderId, status).catch((e) => console.warn('Firestore updateOrderStatus:', e));
     try {
-      const channel = new BroadcastChannel('nasbaladna_orders_channel');
-      channel.postMessage({ type: 'ORDER_STATUS_UPDATE', id: orderId, status });
-      channel.close();
+      persistentOrdersChannel?.postMessage({ type: 'ORDER_STATUS_UPDATE', id: orderId, status });
     } catch {
       // fallback
     }
@@ -1024,7 +1100,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (serviceType === 'eco_green' && baseDeliveryFee > 0) {
       baseDeliveryFee = 2.0; // Eco-green discounted delivery
     }
-    const expressFee = isExpress || serviceType === 'express' ? 15.0 : 0;
+    const expressFee = isExpress || serviceType === 'express' ? 10.0 : 0;
     const deliveryFee = customDeliveryFee !== undefined ? customDeliveryFee : baseDeliveryFee + expressFee;
     const total = cartTotal + deliveryFee;
     const orderNumber = `NB-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -1071,6 +1147,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setActiveOrder(newOrder);
     setOrdersHistory((prev) => [newOrder, ...prev]);
+
+    // 1. Sync to Google Cloud Firestore in real time (instant reflection on phone & admin laptop!)
+    firestoreService.saveOrder(newOrder).catch((e) => console.warn('Firestore saveOrder error:', e));
+
+    // 2. Sync to Express backend API
     api.createOrder(newOrder).catch((e) => console.warn('API createOrder:', e));
 
     // Immediate cross-tab broadcast for instant Admin reflection without closing channel
