@@ -56,12 +56,15 @@ import {
   Compass,
   Leaf,
   Share2,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
 import { OrderReceiptModal } from './OrderReceiptModal';
 import { ScanToOrderModal } from './ScanToOrderModal';
 import { DriverManifestModal } from './DriverManifestModal';
+import { RevenueAnalytics } from './RevenueAnalytics';
 import { getDistrictCoordinates } from '../constants/locations';
 import {
   categoryVegImg,
@@ -126,7 +129,7 @@ export const AdminPortal: React.FC = () => {
 
   // Dashboard active tab
   const [activeTab, setActiveTab] = useState<
-    'products' | 'add_product' | 'categories' | 'delivery_driver' | 'bulk' | 'orders' | 'inventory' | 'security' | 'qr_studio'
+    'products' | 'analytics' | 'add_product' | 'categories' | 'delivery_driver' | 'bulk' | 'orders' | 'inventory' | 'security' | 'qr_studio'
   >('products');
   const [isAdminQrModalOpen, setIsAdminQrModalOpen] = useState(false);
   const [isDriverManifestModalOpen, setIsDriverManifestModalOpen] = useState(false);
@@ -1370,6 +1373,18 @@ export const AdminPortal: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
+              activeTab === 'analytics'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 text-emerald-400" />
+            <span>Revenue & Profit Analytics</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('add_product')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all ${
               activeTab === 'add_product'
@@ -1814,6 +1829,15 @@ export const AdminPortal: React.FC = () => {
             </div>
           );
         })()}
+
+        {/* TAB: REVENUE & PROFIT ANALYTICS DASHBOARD */}
+        {activeTab === 'analytics' && (
+          <RevenueAnalytics
+            orders={ordersHistory}
+            products={products}
+            formatPrice={formatPrice}
+          />
+        )}
 
         {/* TAB 2: ADD NEW PRODUCT */}
         {activeTab === 'add_product' && (

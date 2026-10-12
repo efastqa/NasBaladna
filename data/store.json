@@ -67,7 +67,7 @@
           "label": "Family Box (~12 pcs)"
         }
       ],
-      "stock": 10,
+      "stock": 8,
       "image": "/src/assets/images/product_pani_dodam_orange_1791379905.jpg",
       "description": "Prized for its floral citrus bouquet and low acidity, Pani Dodam is hand-picked at peak ripeness.",
       "origin": "Local Hydroponic Farm - Zone 4",
@@ -109,7 +109,7 @@
           "label": "Culinary crate"
         }
       ],
-      "stock": 40,
+      "stock": 38,
       "image": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80",
       "description": "Harvested directly on the natural green truss vine, preserving delicate aroma and fresh flavor.",
       "origin": "Al Rayyan Controlled Environment Greenhouses",
@@ -193,7 +193,7 @@
           "label": "Gourmet flat tray"
         }
       ],
-      "stock": 13,
+      "stock": 11,
       "image": "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=800&auto=format&fit=crop&q=80",
       "description": "Intensely fragrant red strawberries grown in vertical climate-calibrated towers.",
       "origin": "Al Wakra Vertical Farming Hub",
@@ -355,6 +355,195 @@
     }
   ],
   "orders": [
+    {
+      "id": "ord-1791792375080",
+      "orderNumber": "NB-535840",
+      "createdAt": "11:06 AM",
+      "status": "delivered",
+      "items": [
+        {
+          "id": "nb-pani-dodam-500g",
+          "productId": "nb-pani-dodam",
+          "product": {
+            "id": "nb-pani-dodam",
+            "name": "Pani Dodam (Heritage Sweet Orange)",
+            "scientificName": "Citrus sinensis var. Pani Dodam",
+            "category": "fruits",
+            "brand": "NasBaladna Heritage Groves",
+            "sku": "NB-ORG-001",
+            "basePrice": 6.5,
+            "baseWeight": "500g",
+            "weightOptions": [
+              {
+                "weight": "500g",
+                "multiplier": 1,
+                "label": "Small Pack (~3 pcs)"
+              },
+              {
+                "weight": "1kg",
+                "multiplier": 1.9,
+                "label": "Standard Bag (~6 pcs)"
+              },
+              {
+                "weight": "2kg",
+                "multiplier": 3.6,
+                "label": "Family Box (~12 pcs)"
+              }
+            ],
+            "stock": 10,
+            "image": "/src/assets/images/product_pani_dodam_orange_1791379905.jpg",
+            "description": "Prized for its floral citrus bouquet and low acidity, Pani Dodam is hand-picked at peak ripeness.",
+            "origin": "Local Hydroponic Farm - Zone 4",
+            "farm": "NasBaladna Al Shamal Agricultural Estate",
+            "organic": true,
+            "benefits": [
+              "Immune defense with 85mg bioavailable Vitamin C",
+              "Naturally low acidity gentler on digestion",
+              "Zero synthetic pesticide residue guarantee"
+            ],
+            "storageAdvice": "Store at cool ambient room temperature for up to 4 days, or chill at 4°C to 7°C for up to 14 days.",
+            "wholesalePrice": 52,
+            "wholesaleUnit": "10kg Wooden Crate",
+            "isWholesaleEligible": true
+          },
+          "selectedWeight": "500g",
+          "pricePerUnit": 6.5,
+          "quantity": 1
+        },
+        {
+          "id": "nb-vine-tomatoes-500g",
+          "productId": "nb-vine-tomatoes",
+          "product": {
+            "id": "nb-vine-tomatoes",
+            "name": "Vine-Ripened Cluster Tomatoes",
+            "scientificName": "Solanum lycopersicum",
+            "category": "vegetables",
+            "brand": "NasBaladna Pure Greens",
+            "sku": "NB-VEG-002",
+            "basePrice": 4.75,
+            "baseWeight": "500g",
+            "weightOptions": [
+              {
+                "weight": "500g",
+                "multiplier": 1,
+                "label": "Cluster pack (~4 pcs)"
+              },
+              {
+                "weight": "1kg",
+                "multiplier": 1.9,
+                "label": "Carton (~8 pcs)"
+              },
+              {
+                "weight": "2kg",
+                "multiplier": 3.7,
+                "label": "Culinary crate"
+              }
+            ],
+            "stock": 40,
+            "image": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80",
+            "description": "Harvested directly on the natural green truss vine, preserving delicate aroma and fresh flavor.",
+            "origin": "Al Rayyan Controlled Environment Greenhouses",
+            "farm": "NasBaladna EcoCluster Alpha",
+            "organic": true,
+            "benefits": [
+              "Rich in lycopene antioxidant",
+              "Vibrant truss aroma indicates active nutrients",
+              "Sustainably grown in closed-loop water recycled systems"
+            ],
+            "storageAdvice": "Store stems attached at room temperature away from direct sunlight.",
+            "wholesalePrice": 38,
+            "wholesaleUnit": "5kg Truss Box",
+            "isWholesaleEligible": true
+          },
+          "selectedWeight": "500g",
+          "pricePerUnit": 4.75,
+          "quantity": 1
+        },
+        {
+          "id": "nb-strawberries-250g",
+          "productId": "nb-strawberries",
+          "product": {
+            "id": "nb-strawberries",
+            "name": "Sweet Ruby Greenhouse Strawberries",
+            "scientificName": "Fragaria × ananassa",
+            "category": "fruits",
+            "brand": "NasBaladna Sweet Berry",
+            "sku": "NB-FRU-004",
+            "basePrice": 8.5,
+            "baseWeight": "250g",
+            "weightOptions": [
+              {
+                "weight": "250g",
+                "multiplier": 1,
+                "label": "Punta punnet"
+              },
+              {
+                "weight": "500g",
+                "multiplier": 1.9,
+                "label": "Double punnet"
+              },
+              {
+                "weight": "1kg",
+                "multiplier": 3.6,
+                "label": "Gourmet flat tray"
+              }
+            ],
+            "stock": 13,
+            "image": "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=800&auto=format&fit=crop&q=80",
+            "description": "Intensely fragrant red strawberries grown in vertical climate-calibrated towers.",
+            "origin": "Al Wakra Vertical Farming Hub",
+            "farm": "NasBaladna Vertical Agro-Tech 1",
+            "organic": true,
+            "benefits": [
+              "High polyphenol anthocyanin antioxidants",
+              "Low glycemic index natural sweetness",
+              "Hand-picked carefully with stem crowns intact"
+            ],
+            "storageAdvice": "Refrigerate immediately between 2°C and 4°C. Wash only just before serving.",
+            "wholesalePrice": 65,
+            "wholesaleUnit": "8-Punnet Master Carton (2kg)",
+            "isWholesaleEligible": true
+          },
+          "selectedWeight": "250g",
+          "pricePerUnit": 8.5,
+          "quantity": 1
+        }
+      ],
+      "subtotal": 19.75,
+      "deliveryFee": 20,
+      "total": 39.75,
+      "currency": "QAR",
+      "customerName": "sathes",
+      "phone": "77103274",
+      "address": "Villa 24, Street 902, Zone 66",
+      "district": "Al Wakrah",
+      "deliverySlot": "Express 60-Minute Priority Direct Courier",
+      "paymentMethod": "cod",
+      "paymentStatus": "pending",
+      "estimatedMinutes": 35,
+      "coordinates": {
+        "lat": 25.1768,
+        "lng": 51.6034
+      },
+      "googleMapsUrl": "https://www.google.com/maps?q=25.1768,51.6034",
+      "deliveryNotes": "",
+      "isExpress": true,
+      "serviceType": "express",
+      "dropoffPreference": "hand_to_me",
+      "doorbellPreference": "ring",
+      "bluePlateInfo": {
+        "zone": "66",
+        "street": "902",
+        "building": "24"
+      },
+      "courier": {
+        "name": "Tariq Al-Mansoor",
+        "phone": "+974 5512 8849",
+        "vehicle": "Temperature-Controlled Reefer Van",
+        "plateNumber": "QA-58219",
+        "rating": 4.95
+      }
+    },
     {
       "customerName": "Test Verification Customer",
       "phone": "+974 5582 3419",
@@ -1063,6 +1252,60 @@
     }
   ],
   "inventoryLogs": [
+    {
+      "id": "log-ord-1791792375254-nb-strawberries",
+      "productId": "nb-strawberries",
+      "productName": "Sweet Ruby Greenhouse Strawberries",
+      "change": -1,
+      "newStock": 11,
+      "reason": "customer_order",
+      "timestamp": "08:06 AM"
+    },
+    {
+      "id": "log-ord-1791792375254-nb-vine-tomatoes",
+      "productId": "nb-vine-tomatoes",
+      "productName": "Vine-Ripened Cluster Tomatoes",
+      "change": -1,
+      "newStock": 38,
+      "reason": "customer_order",
+      "timestamp": "08:06 AM"
+    },
+    {
+      "id": "log-ord-1791792375254-nb-pani-dodam",
+      "productId": "nb-pani-dodam",
+      "productName": "Pani Dodam (Heritage Sweet Orange)",
+      "change": -1,
+      "newStock": 8,
+      "reason": "customer_order",
+      "timestamp": "08:06 AM"
+    },
+    {
+      "id": "log-stk-1791792375250",
+      "productId": "nb-strawberries",
+      "productName": "Sweet Ruby Greenhouse Strawberries",
+      "change": -1,
+      "newStock": 12,
+      "reason": "customer_order",
+      "timestamp": "08:06 AM"
+    },
+    {
+      "id": "log-stk-1791792375248",
+      "productId": "nb-vine-tomatoes",
+      "productName": "Vine-Ripened Cluster Tomatoes",
+      "change": -1,
+      "newStock": 39,
+      "reason": "customer_order",
+      "timestamp": "08:06 AM"
+    },
+    {
+      "id": "log-stk-1791792375241",
+      "productId": "nb-pani-dodam",
+      "productName": "Pani Dodam (Heritage Sweet Orange)",
+      "change": -1,
+      "newStock": 9,
+      "reason": "customer_order",
+      "timestamp": "08:06 AM"
+    },
     {
       "id": "log-ord-1791791884065-nb-pani-dodam",
       "productId": "nb-pani-dodam",
