@@ -23,6 +23,12 @@ import {
 import { api } from '../services/api';
 import { NotificationService } from '../services/notifications';
 
+// Persistent cross-tab communication channel (never close synchronously)
+const persistentOrdersChannel =
+  typeof window !== 'undefined' && 'BroadcastChannel' in window
+    ? new BroadcastChannel('nasbaladna_orders_channel')
+    : null;
+
 interface StoreContextType {
   products: Product[];
   inventoryLogs: InventoryLog[];
@@ -131,6 +137,9 @@ interface StoreContextType {
   playOrderAlertChime: () => void;
   latestReceivedOrder: Order | null;
   
+  isRealtimeConnected: boolean;
+  refreshOrders: () => Promise<void>;
+  
   ownerPhone: string;
   ownerWhatsAppUrl: string;
   toastMessage: string | null;
@@ -205,16 +214,44 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Admin Authentication & Authorization
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('nb_admin_session') === 'active';
+    return (
+      localStorage.getItem('nb_admin_session') === 'active' ||
+      sessionStorage.getItem('nb_admin_session') === 'active'
+    );
   });
   const [adminUser, setAdminUser] = useState<{ username: string; name: string } | null>(() => {
-    const saved = sessionStorage.getItem('nb_admin_user');
+    const saved = localStorage.getItem('nb_admin_user') || sessionStorage.getItem('nb_admin_user');
     return saved ? JSON.parse(saved) : null;
   });
   const [adminPassword, setAdminPassword] = useState<string>(() => {
     return localStorage.getItem('nb_admin_password') || 'admin';
   });
-  const [currentView, setCurrentView] = useState<'customer' | 'admin'>('customer');
+  const [currentView, setCurrentView] = useState<'customer' | 'admin'>(() => {
+    if (typeof window !== 'undefined') {
+      if (
+        window.location.hash === '#admin' ||
+        window.location.pathname.startsWith('/admin') ||
+        new URLSearchParams(window.location.search).get('view') === 'admin'
+      ) {
+        return 'admin';
+      }
+    }
+    return 'customer';
+  });
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(true);
+
+  // Sync hash routing so navigating or sharing #admin switches views instantly
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#admin') {
+        setCurrentView('admin');
+      } else if (window.location.hash === '#store' || window.location.hash === '') {
+        setCurrentView('customer');
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [ordersHistory, setOrdersHistory] = useState<Order[]>(() => {
@@ -358,45 +395,60 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // REAL-TIME ORDER SYNCHRONIZATION: Cross-tab events + 3.5s background server polling
+  // Helper to handle newly discovered orders from SSE, cross-tab, or server poll
+  const processIncomingOrder = (incomingOrder: Order) => {
+    setOrdersHistory((prev) => {
+      if (prev.some((o) => o.id === incomingOrder.id || o.orderNumber === incomingOrder.orderNumber)) {
+        return prev;
+      }
+      return [incomingOrder, ...prev];
+    });
+
+    setUnreadOrdersCount((prev) => {
+      const next = prev + 1;
+      localStorage.setItem('nb_unread_orders_count', String(next));
+      return next;
+    });
+
+    setLatestReceivedOrder(incomingOrder);
+
+    if (adminAlertSoundEnabled) {
+      NotificationService.playOrderChime();
+    }
+
+    NotificationService.showDesktopNotification(
+      `🚨 New Website Order: #${incomingOrder.orderNumber}`,
+      `${incomingOrder.customerName} placed an order for ${incomingOrder.currency || 'QAR'} ${(incomingOrder.total || 0).toFixed(2)}`
+    );
+
+    showToast(`⚡ Live Order Alert: #${incomingOrder.orderNumber} (${incomingOrder.customerName}) received!`);
+  };
+
+  const processOrderStatusUpdate = (id: string, status: OrderStatus) => {
+    setOrdersHistory((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status } : o))
+    );
+    setActiveOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
+  };
+
+  // REAL-TIME ORDER SYNCHRONIZATION:
+  // 1. Server-Sent Events (SSE) stream from backend (/api/orders/stream)
+  // 2. Persistent Cross-Tab BroadcastChannel (0ms zero latency across tabs)
+  // 3. StorageEvent cross-tab sync fallback
+  // 4. Fast polling backup (every 2 seconds)
   useEffect(() => {
     let isMounted = true;
-    let channel: BroadcastChannel | null = null;
 
-    // 1. Cross-tab BroadcastChannel for zero-latency reflection across windows/tabs
-    try {
-      channel = new BroadcastChannel('nasbaladna_orders_channel');
-      channel.onmessage = (event) => {
+    // 1. Cross-tab BroadcastChannel for 0ms zero-latency reflection across browser tabs
+    if (persistentOrdersChannel) {
+      persistentOrdersChannel.onmessage = (event) => {
         if (!isMounted) return;
         if (event.data?.type === 'NEW_ORDER' && event.data?.order) {
-          const incomingOrder: Order = event.data.order;
-          setOrdersHistory((prev) => {
-            if (prev.some((o) => o.id === incomingOrder.id)) return prev;
-            return [incomingOrder, ...prev];
-          });
-          setUnreadOrdersCount((prev) => {
-            const next = prev + 1;
-            localStorage.setItem('nb_unread_orders_count', String(next));
-            return next;
-          });
-          setLatestReceivedOrder(incomingOrder);
-          if (adminAlertSoundEnabled) {
-            NotificationService.playOrderChime();
-          }
-          NotificationService.showDesktopNotification(
-            `🚨 New Website Order: #${incomingOrder.orderNumber}`,
-            `${incomingOrder.customerName} ordered ${incomingOrder.items.length} items (${incomingOrder.currency} ${incomingOrder.total.toFixed(2)})`
-          );
+          processIncomingOrder(event.data.order);
         } else if (event.data?.type === 'ORDER_STATUS_UPDATE') {
-          const { id, status } = event.data;
-          setOrdersHistory((prev) =>
-            prev.map((o) => (o.id === id ? { ...o, status } : o))
-          );
-          setActiveOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
+          processOrderStatusUpdate(event.data.id, event.data.status);
         }
       };
-    } catch {
-      // BroadcastChannel unavailable in rare environments
     }
 
     // 2. Storage event fallback for cross-tab communication
@@ -406,26 +458,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           const payload = JSON.parse(e.newValue);
           if (payload?.order) {
-            const incoming: Order = payload.order;
-            setOrdersHistory((prev) => {
-              if (prev.some((o) => o.id === incoming.id)) return prev;
-              return [incoming, ...prev];
-            });
-            setUnreadOrdersCount((prev) => {
-              const next = prev + 1;
-              localStorage.setItem('nb_unread_orders_count', String(next));
-              return next;
-            });
-            setLatestReceivedOrder(incoming);
-            if (adminAlertSoundEnabled) {
-              NotificationService.playOrderChime();
-            }
+            processIncomingOrder(payload.order);
           } else if (payload?.statusUpdate) {
-            const { id, status } = payload.statusUpdate;
-            setOrdersHistory((prev) =>
-              prev.map((o) => (o.id === id ? { ...o, status } : o))
-            );
-            setActiveOrder((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
+            processOrderStatusUpdate(payload.statusUpdate.id, payload.statusUpdate.status);
           }
         } catch {
           // parse fallback
@@ -434,8 +469,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     window.addEventListener('storage', handleStorageEvent);
 
-    // 3. Multi-Device Server Polling (every 3.5 seconds)
-    // Ensures orders created on mobile devices or other computers reflect in the Admin Panel immediately
+    // 3. Server-Sent Events (SSE) stream for instant server-push across all tabs & devices
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/orders/stream');
+      eventSource.onopen = () => {
+        if (isMounted) setIsRealtimeConnected(true);
+      };
+      eventSource.onmessage = (e) => {
+        if (!isMounted) return;
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'NEW_ORDER' && msg.data) {
+            processIncomingOrder(msg.data);
+          } else if (msg.type === 'ORDER_STATUS_UPDATE' && msg.data) {
+            processOrderStatusUpdate(msg.data.id, msg.data.status);
+          }
+        } catch {
+          // heartbeat or non-json message
+        }
+      };
+      eventSource.onerror = () => {
+        if (isMounted) setIsRealtimeConnected(false);
+      };
+    } catch {
+      // EventSource fallback
+    }
+
+    // 4. Fast Background Server Polling (every 2.0s) as guaranteed fallback
     const pollBackendOrders = async () => {
       try {
         const serverOrders = await api.getOrders();
@@ -443,23 +504,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         setOrdersHistory((prev) => {
           const prevMap = new Map(prev.map((o) => [o.id, o]));
-          const newOrdersFromRemote = serverOrders.filter((so) => !prevMap.has(so.id));
+          const newOrdersFromRemote = serverOrders.filter(
+            (so) => !prevMap.has(so.id) && !prev.some((p) => p.orderNumber === so.orderNumber)
+          );
 
           if (newOrdersFromRemote.length > 0) {
-            // New orders discovered from server!
-            setUnreadOrdersCount((u) => {
-              const next = u + newOrdersFromRemote.length;
-              localStorage.setItem('nb_unread_orders_count', String(next));
-              return next;
+            newOrdersFromRemote.forEach((ord) => {
+              processIncomingOrder(ord);
             });
-            setLatestReceivedOrder(newOrdersFromRemote[0]);
-            if (adminAlertSoundEnabled) {
-              NotificationService.playOrderChime();
-            }
-            NotificationService.showDesktopNotification(
-              `🚨 ${newOrdersFromRemote.length} New Order(s) Received!`,
-              `Latest: #${newOrdersFromRemote[0].orderNumber} (${newOrdersFromRemote[0].customerName})`
-            );
             return [...newOrdersFromRemote, ...prev];
           }
 
@@ -469,7 +521,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return local && local.status !== so.status;
           });
           if (hasStatusDiff) {
-            return serverOrders;
+            return prev.map((o) => {
+              const remote = serverOrders.find((so) => so.id === o.id);
+              return remote ? { ...o, status: remote.status } : o;
+            });
           }
 
           return prev;
@@ -479,7 +534,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     };
 
-    const pollInterval = setInterval(pollBackendOrders, 3500);
+    const pollInterval = setInterval(pollBackendOrders, 2000);
 
     // Immediate check on tab focus/visibility
     const handleVisibility = () => {
@@ -492,7 +547,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     return () => {
       isMounted = false;
-      channel?.close();
+      eventSource?.close();
       window.removeEventListener('storage', handleStorageEvent);
       clearInterval(pollInterval);
       window.removeEventListener('focus', pollBackendOrders);
@@ -526,14 +581,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const userObj = { username: normalizedUser, name: 'NasBaladna Store Admin' };
       setIsAdminAuthenticated(true);
       setAdminUser(userObj);
+      localStorage.setItem('nb_admin_session', 'active');
       sessionStorage.setItem('nb_admin_session', 'active');
+      localStorage.setItem('nb_admin_user', JSON.stringify(userObj));
       sessionStorage.setItem('nb_admin_user', JSON.stringify(userObj));
       setCurrentView('admin');
+      if (typeof window !== 'undefined') {
+        window.location.hash = 'admin';
+      }
       showToast('Admin authenticated successfully');
       return true;
     }
     showToast('Invalid credentials. Access denied.');
     return false;
+  };
+
+  const refreshOrders = async () => {
+    try {
+      const orders = await api.getOrders();
+      if (Array.isArray(orders)) {
+        setOrdersHistory(orders);
+        showToast(`Refreshed ${orders.length} orders directly from server`);
+      }
+    } catch {
+      showToast('Could not reach backend to refresh orders');
+    }
   };
 
   const changeAdminPassword = (
@@ -593,9 +665,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const adminLogout = () => {
     setIsAdminAuthenticated(false);
     setAdminUser(null);
+    localStorage.removeItem('nb_admin_session');
     sessionStorage.removeItem('nb_admin_session');
+    localStorage.removeItem('nb_admin_user');
     sessionStorage.removeItem('nb_admin_user');
     setCurrentView('customer');
+    if (typeof window !== 'undefined') {
+      window.location.hash = '';
+    }
     showToast('Admin logged out successfully');
   };
 
@@ -996,11 +1073,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrdersHistory((prev) => [newOrder, ...prev]);
     api.createOrder(newOrder).catch((e) => console.warn('API createOrder:', e));
 
-    // Immediate cross-tab broadcast for instant Admin reflection without refreshing
+    // Immediate cross-tab broadcast for instant Admin reflection without closing channel
     try {
-      const channel = new BroadcastChannel('nasbaladna_orders_channel');
-      channel.postMessage({ type: 'NEW_ORDER', order: newOrder });
-      channel.close();
+      persistentOrdersChannel?.postMessage({ type: 'NEW_ORDER', order: newOrder });
     } catch {
       // fallback
     }
@@ -1152,6 +1227,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setAdminAlertSoundEnabled,
         playOrderAlertChime,
         latestReceivedOrder,
+        isRealtimeConnected,
+        refreshOrders,
       }}
     >
       {children}

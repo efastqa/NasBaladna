@@ -399,6 +399,55 @@ async function startServer() {
     next();
   });
 
+  // ===================== REAL-TIME SSE BROADCAST =====================
+  const sseClients = new Set<Response>();
+
+  function broadcastSSE(type: string, data: any) {
+    const payload = `data: ${JSON.stringify({ type, data, timestamp: Date.now() })}\n\n`;
+    sseClients.forEach((client) => {
+      try {
+        client.write(payload);
+      } catch {
+        sseClients.delete(client);
+      }
+    });
+  }
+
+  // Real-Time Server-Sent Events stream for instant cross-tab / cross-device reflection
+  app.get('/api/orders/stream', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    // Initial connection payload
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'CONNECTED',
+        totalOrders: db.orders.length,
+        timestamp: Date.now(),
+      })}\n\n`
+    );
+
+    sseClients.add(res);
+
+    // Heartbeat every 15 seconds to prevent browser timeouts
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(`: heartbeat\n\n`);
+      } catch {
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      }
+    }, 15000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    });
+  });
+
   // ===================== API ROUTES =====================
 
   // Health
@@ -412,6 +461,7 @@ async function startServer() {
         products: db.products.length,
         categories: db.categories.length,
         orders: db.orders.length,
+        activeStreams: sseClients.size,
       },
     });
   });
@@ -678,6 +728,7 @@ async function startServer() {
 
     db.orders.unshift(newOrder);
     saveDatabase();
+    broadcastSSE('NEW_ORDER', newOrder);
     res.status(201).json(newOrder);
   });
 
@@ -691,6 +742,7 @@ async function startServer() {
 
     order.status = status;
     saveDatabase();
+    broadcastSSE('ORDER_STATUS_UPDATE', { id, status, order });
     res.json(order);
   });
 

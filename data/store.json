@@ -67,7 +67,7 @@
           "label": "Family Box (~12 pcs)"
         }
       ],
-      "stock": 12,
+      "stock": 10,
       "image": "/src/assets/images/product_pani_dodam_orange_1791379905.jpg",
       "description": "Prized for its floral citrus bouquet and low acidity, Pani Dodam is hand-picked at peak ripeness.",
       "origin": "Local Hydroponic Farm - Zone 4",
@@ -387,7 +387,7 @@
       "id": "nb-ord-1791790402811",
       "orderNumber": "NB-307421",
       "createdAt": "2026-10-12T07:33:22.811Z",
-      "status": "confirmed",
+      "status": "delivered",
       "courier": {
         "name": "Tariq Al-Mansoor",
         "phone": "+974 5512 8849",
@@ -403,7 +403,7 @@
       "id": "ord-1791790316827",
       "orderNumber": "NB-691606",
       "createdAt": "10:31 AM",
-      "status": "on_the_way",
+      "status": "delivered",
       "items": [
         {
           "id": "nb-near-avocado-2-Pack (400g)",
@@ -640,7 +640,7 @@
       "id": "ord-1791784058101",
       "orderNumber": "NB-154858",
       "createdAt": "08:47 AM",
-      "status": "confirmed",
+      "status": "delivered",
       "items": [
         {
           "id": "nb-near-avocado-2-Pack (400g)",
@@ -828,7 +828,7 @@
       "id": "ord-1791783738634",
       "orderNumber": "NB-879762",
       "createdAt": "08:42 AM",
-      "status": "confirmed",
+      "status": "delivered",
       "items": [
         {
           "id": "nb-near-avocado-2-Pack (400g)",
@@ -1063,6 +1063,24 @@
     }
   ],
   "inventoryLogs": [
+    {
+      "id": "log-ord-1791791884065-nb-pani-dodam",
+      "productId": "nb-pani-dodam",
+      "productName": "Pani Dodam (Heritage Sweet Orange)",
+      "change": -1,
+      "newStock": 10,
+      "reason": "customer_order",
+      "timestamp": "07:58 AM"
+    },
+    {
+      "id": "log-ord-1791791508046-nb-pani-dodam",
+      "productId": "nb-pani-dodam",
+      "productName": "Pani Dodam (Heritage Sweet Orange)",
+      "change": -1,
+      "newStock": 11,
+      "reason": "customer_order",
+      "timestamp": "07:51 AM"
+    },
     {
       "id": "log-ord-1791790402811-nb-near-avocado",
       "productId": "nb-near-avocado",
@@ -1299,7 +1317,7 @@
     "dispatchWhatsApp": "+97455128849",
     "notes": "Priority Cold-Chain Deliveries across West Bay, The Pearl, and Lusail districts."
   },
-  "adminPasswordHash": "admin",
+  "adminPasswordHash": "30606701",
   "settings": {
     "ownerPhone": "+974 5512 8849",
     "ownerWhatsApp": "+97455128849",

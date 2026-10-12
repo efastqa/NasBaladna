@@ -136,6 +136,10 @@ export const api = {
     });
   },
 
+  getOrderStreamUrl: (): string => {
+    return `${API_BASE}/orders/stream`;
+  },
+
   // Inventory logs
   getInventoryLogs: async (): Promise<InventoryLog[]> => {
     return request<InventoryLog[]>('/inventory/logs');
