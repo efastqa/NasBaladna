@@ -126,9 +126,13 @@ export const MenuDrawer: React.FC = () => {
           {/* Mobile App Download Card */}
           <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-md space-y-2.5 border border-emerald-700/50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-xl bg-white text-emerald-800 shrink-0">
-                  <Smartphone className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white p-0.5 shadow-sm border border-emerald-300/40 shrink-0 overflow-hidden flex items-center justify-center">
+                  <img
+                    src="/app-icon.png"
+                    alt="NasBaladna App Icon"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
                 </div>
                 <div>
                   <h4 className="font-extrabold text-xs text-white">NasBaladna App</h4>

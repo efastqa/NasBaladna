@@ -111,8 +111,12 @@ export const AppDownloadModal: React.FC = () => {
 
             <div className="relative z-10 flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-white rounded-2xl shadow-md shrink-0">
-                  <NasBaladnaLogo size="sm" showTagline={false} />
+                <div className="w-14 h-14 bg-white rounded-2xl shadow-md shrink-0 p-1 border border-emerald-300/40 flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/app-icon.png"
+                    alt="NasBaladna App Icon"
+                    className="w-full h-full object-cover rounded-xl"
+                  />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-300/30 text-[11px] font-bold text-emerald-200 mb-1">
@@ -225,7 +229,7 @@ export const AppDownloadModal: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-2xl bg-white shadow-md p-1 border border-emerald-200 shrink-0 flex items-center justify-center overflow-hidden">
                         <img
-                          src="/pwa-192x192.png"
+                          src="/app-icon.png"
                           alt="NasBaladna App Icon"
                           className="w-full h-full object-cover rounded-xl"
                         />

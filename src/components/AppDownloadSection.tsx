@@ -44,9 +44,21 @@ export const AppDownloadSection: React.FC = () => {
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* Left Column: Value Prop & CTA */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Official Mobile Experience</span>
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 shadow-lg border border-white/20 shrink-0 overflow-hidden">
+              <img
+                src="/app-icon.png"
+                alt="NasBaladna App Icon"
+                className="w-full h-full object-cover rounded-xl"
+              />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold mb-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Official Mobile App</span>
+              </div>
+              <div className="text-[11px] text-emerald-200/80">iOS · Android · Instant Web App</div>
+            </div>
           </div>
 
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-black font-['Outfit'] tracking-tight text-white leading-tight">
