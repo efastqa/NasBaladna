@@ -820,6 +820,10 @@ async function startServer() {
   });
 
   // ===================== STATIC / VITE INTEGRATION =====================
+  const publicPath = path.resolve(__dirname, 'public');
+  if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+  }
 
   if (!isProd) {
     // In dev: mount Vite middlewares with hmr: false to avoid websocket errors in AI Studio iframe

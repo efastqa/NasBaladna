@@ -12,6 +12,8 @@ import { InventoryManagerModal } from './components/InventoryManagerModal';
 import { WhatsAppChatModal } from './components/WhatsAppChatModal';
 import { MenuDrawer } from './components/MenuDrawer';
 import { ScanToOrderModal } from './components/ScanToOrderModal';
+import { AppDownloadModal } from './components/AppDownloadModal';
+import { AppDownloadSection } from './components/AppDownloadSection';
 import { BottomNav } from './components/BottomNav';
 import { AdminPortal } from './components/AdminPortal';
 import { NasBaladnaLogo } from './components/NasBaladnaLogo';
@@ -26,6 +28,8 @@ import {
   Package,
   Lock,
   QrCode,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 
 const MainStoreContent: React.FC = () => {
@@ -42,6 +46,7 @@ const MainStoreContent: React.FC = () => {
     setIsInventoryModalOpen,
     setIsWhatsAppOpen,
     setIsQrModalOpen,
+    setIsAppDownloadModalOpen,
     toastMessage,
     cartCount,
     setIsMenuDrawerOpen,
@@ -256,18 +261,29 @@ const MainStoreContent: React.FC = () => {
           </div>
         </section>
 
+        {/* Dedicated App Download Section */}
+        <AppDownloadSection />
+
         {/* Clean Public Footer */}
         <footer className="pt-10 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:pb-12 border-t border-slate-200 text-xs text-slate-500">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6">
-            <NasBaladnaLogo size="sm" showTagline={true} />
-            <div className="flex items-center gap-6 font-medium text-slate-600">
+            <NasBaladnaLogo size="md" showTagline={true} />
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 font-medium text-slate-600">
               <a href="#produce" className="hover:text-emerald-800">Fresh Produce</a>
-              <button onClick={() => setIsInventoryModalOpen(true)} className="hover:text-emerald-800">
+              <button onClick={() => setIsInventoryModalOpen(true)} className="hover:text-emerald-800 cursor-pointer">
                 Stock Availability
               </button>
               <button
+                onClick={() => setIsAppDownloadModalOpen(true)}
+                className="hover:text-emerald-800 flex items-center gap-1 font-semibold text-emerald-700 cursor-pointer"
+                title="Download NasBaladna App"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Download App</span>
+              </button>
+              <button
                 onClick={() => setIsQrModalOpen(true)}
-                className="hover:text-emerald-800 flex items-center gap-1 font-semibold text-emerald-700"
+                className="hover:text-emerald-800 flex items-center gap-1 font-semibold text-emerald-700 cursor-pointer"
               >
                 <QrCode className="w-3.5 h-3.5" />
                 <span>Scan to Order QR</span>
@@ -320,6 +336,7 @@ const MainStoreContent: React.FC = () => {
       <WhatsAppChatModal />
       <MenuDrawer />
       <ScanToOrderModal />
+      <AppDownloadModal />
     </div>
   );
 };

@@ -1,11 +1,11 @@
 import React from 'react';
 import { heroImg } from '../data/mockData';
-import { Truck, Sparkles, CheckCircle2, ArrowRight, Zap } from 'lucide-react';
+import { Truck, Sparkles, CheckCircle2, ArrowRight, Zap, Smartphone } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { motion } from 'motion/react';
 
 export const HeroBanner: React.FC = () => {
-  const { setSelectedCategory, setIsWhatsAppOpen } = useStore();
+  const { setSelectedCategory, setIsWhatsAppOpen, setIsAppDownloadModalOpen } = useStore();
 
   return (
     <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-sm mb-6 bg-slate-900">
@@ -86,6 +86,18 @@ export const HeroBanner: React.FC = () => {
               >
                 <Zap className="w-3.5 h-3.5 fill-current" />
                 <span>Near Expiry Deals</span>
+              </button>
+
+              <button
+                onClick={() => setIsAppDownloadModalOpen(true)}
+                className="px-3 sm:px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 border border-white/25 backdrop-blur-md cursor-pointer"
+                title="Download NasBaladna Mobile App for 15% OFF"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Get App</span>
+                <span className="hidden sm:inline text-[10px] font-mono bg-emerald-400 text-emerald-950 px-1.5 py-0.2 rounded font-black">
+                  15% OFF
+                </span>
               </button>
             </motion.div>
 

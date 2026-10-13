@@ -14,6 +14,8 @@ import {
   LogOut,
   Truck,
   Zap,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 import { CURRENCY_RATES } from '../data/mockData';
 import { CurrencyType } from '../types';
@@ -28,6 +30,7 @@ export const Header: React.FC = () => {
     setIsTrackingOpen,
     setIsInventoryModalOpen,
     setIsQrModalOpen,
+    setIsAppDownloadModalOpen,
     activeOrder,
     setActiveMobileTab,
     ownerPhone,
@@ -121,7 +124,14 @@ export const Header: React.FC = () => {
                 <span className="text-white font-bold">{ownerPhone}</span>
               </div>
             </a>
-            <span aria-hidden="true" className="hidden sm:inline">·</span>
+            <button
+              onClick={() => setIsAppDownloadModalOpen(true)}
+              className="hidden lg:flex items-center gap-1 text-emerald-200 hover:text-white transition font-medium cursor-pointer"
+            >
+              <Smartphone className="w-3 h-3 text-amber-300" />
+              <span>App Download (15% OFF)</span>
+            </button>
+            <span aria-hidden="true" className="hidden lg:inline">·</span>
             <span className="hidden md:flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-300" />
               <span>Free Delivery &gt; QAR 50</span>
@@ -132,12 +142,12 @@ export const Header: React.FC = () => {
 
       {/* Main Top Bar: 3-Zone Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
-        {/* Zone 1: NasBaladna Brand Official Logo matching IMG_5631 */}
-        <div className="flex items-center gap-3">
+        {/* Zone 1: NasBaladna Brand Official Logo */}
+        <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
           <button
             onClick={() => setIsMenuDrawerOpen(true)}
             aria-label="Open navigation menu"
-            className="p-2 text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors md:hidden"
+            className="p-2 text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors md:hidden shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -149,7 +159,7 @@ export const Header: React.FC = () => {
               setActiveMobileTab('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex items-center text-decoration-none group transition-transform hover:scale-[1.01]"
+            className="flex items-center text-decoration-none group transition-transform hover:scale-[1.01] shrink-0"
           >
             <NasBaladnaLogo size="responsive" showTagline={true} />
           </a>
@@ -178,14 +188,35 @@ export const Header: React.FC = () => {
           </button>
           <button
             onClick={() => setIsTrackingOpen(true)}
-            className="hover:text-emerald-700 transition-colors text-slate-700 font-semibold"
+            className="hover:text-emerald-700 transition-colors text-slate-700 font-semibold cursor-pointer"
           >
             Track Order
+          </button>
+          <button
+            onClick={() => setIsAppDownloadModalOpen(true)}
+            className="hover:text-emerald-700 transition-colors flex items-center gap-1.5 text-slate-700 font-semibold cursor-pointer"
+            title="Download NasBaladna Mobile App"
+          >
+            <Smartphone className="w-4 h-4 text-emerald-600" />
+            <span>App</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black">
+              15% OFF
+            </span>
           </button>
         </nav>
 
         {/* Zone 3: Actions & Controls (NO Admin Buttons for Customers) */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Download App Action Button */}
+          <button
+            onClick={() => setIsAppDownloadModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+            title="Download NasBaladna Mobile & Web App"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Get App</span>
+          </button>
+
           {/* Currency Selector */}
           <select
             value={currency}

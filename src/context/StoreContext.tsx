@@ -121,6 +121,8 @@ interface StoreContextType {
   setIsMenuDrawerOpen: (open: boolean) => void;
   isQrModalOpen: boolean;
   setIsQrModalOpen: (open: boolean) => void;
+  isAppDownloadModalOpen: boolean;
+  setIsAppDownloadModalOpen: (open: boolean) => void;
   
   activeMobileTab: 'home' | 'menu' | 'search' | 'shop' | 'cart' | 'account';
   setActiveMobileTab: (tab: 'home' | 'menu' | 'search' | 'shop' | 'cart' | 'account') => void;
@@ -243,6 +245,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isAppDownloadModalOpen, setIsAppDownloadModalOpen] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'home' | 'menu' | 'search' | 'shop' | 'cart' | 'account'>('home');
 
   // Admin Authentication & Authorization
@@ -1326,6 +1329,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsMenuDrawerOpen,
         isQrModalOpen,
         setIsQrModalOpen,
+        isAppDownloadModalOpen,
+        setIsAppDownloadModalOpen,
         activeMobileTab,
         setActiveMobileTab,
         updateStock,

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 140" fill="none">
+  <defs>
+    <linearGradient id="logoNGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80" />
+      <stop offset="45%" stop-color="#3FA636" />
+      <stop offset="100%" stop-color="#0F472A" />
+    </linearGradient>
+    <linearGradient id="logoCartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3FA636" />
+      <stop offset="100%" stop-color="#0B3C1D" />
+    </linearGradient>
+    <linearGradient id="logoLeafGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#22C55E" />
+      <stop offset="100%" stop-color="#86EFAC" />
+    </linearGradient>
+    <linearGradient id="logoSpeedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#86EFAC" />
+      <stop offset="100%" stop-color="#3FA636" />
+    </linearGradient>
+  </defs>
+
+  <!-- Speed lines on left -->
+  <line x1="16" y1="58" x2="42" y2="58" stroke="url(#logoSpeedGrad)" stroke-width="6.5" stroke-linecap="round" />
+  <line x1="8" y1="76" x2="48" y2="76" stroke="url(#logoSpeedGrad)" stroke-width="6.5" stroke-linecap="round" />
+  <line x1="18" y1="94" x2="44" y2="94" stroke="url(#logoSpeedGrad)" stroke-width="6.5" stroke-linecap="round" />
+
+  <!-- Stylized N left pillar -->
+  <path
+    d="M 64 42 C 57 42 52 47 52 56 L 52 96 C 52 105 57 110 64 110 C 71 110 76 105 76 96 L 76 56 C 76 47 71 42 64 42 Z"
+    fill="url(#logoNGrad)"
+  />
+
+  <!-- Diagonal fold of N -->
+  <path
+    d="M 60 48 C 60 44 70 42 78 51 L 118 101 C 124 108 133 106 133 97 L 133 60 C 133 53 128 47 121 47 C 114 47 110 52 110 57 L 110 68 L 80 37 C 72 28 60 33 60 48 Z"
+    fill="url(#logoNGrad)"
+  />
+
+  <!-- Shopping cart frame -->
+  <path
+    d="M 118 69 L 130 69 L 142 96 L 166 96 C 170 96 173 92 175 87 L 180 69 C 182 64 178 59 172 59 L 126 59"
+    stroke="url(#logoCartGrad)"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Cart wheels -->
+  <circle cx="143" cy="110" r="7.5" fill="#0F472A" />
+  <circle cx="143" cy="110" r="2.5" fill="#3FA636" />
+  <circle cx="166" cy="110" r="7.5" fill="#0F472A" />
+  <circle cx="166" cy="110" r="2.5" fill="#3FA636" />
+
+  <!-- Fresh Green Leaf sprouting from shopping basket -->
+  <path
+    d="M 144 71 C 140 50 158 35 178 31 C 180 50 164 71 144 71 Z"
+    fill="url(#logoLeafGrad)"
+  />
+  <path
+    d="M 148 69 Q 162 52 174 35"
+    stroke="#0F472A"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+
+  <!-- Brand Wordmark Typography: Outfit / Geometric Sans -->
+  <text x="206" y="82" font-family="'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif" font-size="56" font-weight="800" letter-spacing="-1.5">
+    <tspan fill="#0F472A">Nas</tspan>
+    <tspan fill="#3FA636">Baladna</tspan>
+  </text>
+
+  <!-- Tagline: SHOP 🍃 ORDER 🍃 GET IT -->
+  <text x="208" y="112" font-family="'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif" font-size="18" font-weight="800" fill="#2D5A27" letter-spacing="4">
+    SHOP  🍃  ORDER  🍃  GET IT
+  </text>
+</svg>

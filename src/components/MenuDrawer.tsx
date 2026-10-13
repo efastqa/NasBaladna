@@ -12,6 +12,9 @@ import {
   QrCode,
   LogOut,
   LayoutDashboard,
+  Smartphone,
+  Download,
+  Sparkles,
 } from 'lucide-react';
 import { CATEGORIES_DATA } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -26,6 +29,7 @@ export const MenuDrawer: React.FC = () => {
     setIsTrackingOpen,
     setIsWhatsAppOpen,
     setIsQrModalOpen,
+    setIsAppDownloadModalOpen,
     isAdminAuthenticated,
     adminLogout,
     setCurrentView,
@@ -45,8 +49,8 @@ export const MenuDrawer: React.FC = () => {
       <div className="w-full max-w-xs sm:max-w-sm bg-white h-full shadow-2xl flex flex-col border-r border-slate-200">
         {/* Drawer Header with Official Logo */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-[#14532D] text-white">
-          <div className="p-1 rounded-xl bg-white shadow-xs">
-            <NasBaladnaLogo size="sm" showTagline={false} />
+          <div className="p-1.5 px-2.5 rounded-xl bg-white shadow-xs">
+            <NasBaladnaLogo size="sm" showTagline={true} />
           </div>
 
           <button
@@ -119,12 +123,56 @@ export const MenuDrawer: React.FC = () => {
             </div>
           </div>
 
+          {/* Mobile App Download Card */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white shadow-md space-y-2.5 border border-emerald-700/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-xl bg-white text-emerald-800 shrink-0">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-xs text-white">NasBaladna App</h4>
+                  <span className="text-[10px] text-emerald-200">15% OFF · Code: APP15</span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-emerald-950 font-black text-[9px]">
+                GET APP
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setIsMenuDrawerOpen(false);
+                setIsAppDownloadModalOpen(true);
+              }}
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download for iOS & Android</span>
+            </button>
+          </div>
+
           {/* Customer Tools */}
           <div className="border-t border-slate-100 pt-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">
               Customer Services
             </h3>
             <div className="space-y-1">
+              <button
+                onClick={() => {
+                  setIsMenuDrawerOpen(false);
+                  setIsAppDownloadModalOpen(true);
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-800 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-emerald-600" />
+                  <span>Download Mobile App</span>
+                </div>
+                <span className="text-[10px] font-mono bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                  15% OFF
+                </span>
+              </button>
+
               <button
                 onClick={() => {
                   setIsMenuDrawerOpen(false);
