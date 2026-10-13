@@ -30,6 +30,38 @@ const persistentOrdersChannel =
     ? new BroadcastChannel('nasbaladna_orders_channel')
     : null;
 
+// Safe localStorage helper to prevent QuotaExceededError in mobile web and iframes
+const safeLocalStorage = {
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`[Storage] Quota exceeded or storage unavailable for key "${key}":`, e);
+      // If quota exceeded, clean up non-critical large caches and retry once
+      try {
+        localStorage.removeItem('nb_orders_sync_ping');
+        localStorage.setItem(key, value);
+      } catch {
+        // Fall back gracefully to in-memory state without crashing
+      }
+    }
+  },
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  removeItem: (key: string) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+  },
+};
+
 interface StoreContextType {
   products: Product[];
   inventoryLogs: InventoryLog[];
@@ -152,7 +184,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('nb_products');
+    const saved = safeLocalStorage.getItem('nb_products');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -185,7 +217,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ]);
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('nb_cart');
+    const saved = safeLocalStorage.getItem('nb_cart');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -216,16 +248,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Admin Authentication & Authorization
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return (
-      localStorage.getItem('nb_admin_session') === 'active' ||
-      sessionStorage.getItem('nb_admin_session') === 'active'
+      safeLocalStorage.getItem('nb_admin_session') === 'active' ||
+      (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nb_admin_session') === 'active')
     );
   });
   const [adminUser, setAdminUser] = useState<{ username: string; name: string } | null>(() => {
-    const saved = localStorage.getItem('nb_admin_user') || sessionStorage.getItem('nb_admin_user');
+    const saved = safeLocalStorage.getItem('nb_admin_user') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('nb_admin_user') : null);
     return saved ? JSON.parse(saved) : null;
   });
   const [adminPassword, setAdminPassword] = useState<string>(() => {
-    return localStorage.getItem('nb_admin_password') || 'admin';
+    return safeLocalStorage.getItem('nb_admin_password') || 'admin';
   });
   const [currentView, setCurrentView] = useState<'customer' | 'admin'>(() => {
     if (typeof window !== 'undefined') {
@@ -256,7 +288,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [ordersHistory, setOrdersHistory] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('nb_orders_history');
+    const saved = safeLocalStorage.getItem('nb_orders_history');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -269,22 +301,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('nb_orders_history', JSON.stringify(ordersHistory));
+    safeLocalStorage.setItem('nb_orders_history', JSON.stringify(ordersHistory));
   }, [ordersHistory]);
 
   // Admin New Order Alert State
   const [unreadOrdersCount, setUnreadOrdersCount] = useState<number>(() => {
-    const saved = localStorage.getItem('nb_unread_orders_count');
+    const saved = safeLocalStorage.getItem('nb_unread_orders_count');
     return saved ? Math.max(0, parseInt(saved, 10)) : 0;
   });
   const [adminAlertSoundEnabled, setAdminAlertSoundEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('nb_admin_alert_sound') !== 'false';
+    return safeLocalStorage.getItem('nb_admin_alert_sound') !== 'false';
   });
   const [latestReceivedOrder, setLatestReceivedOrder] = useState<Order | null>(null);
 
   const markOrdersAsRead = () => {
     setUnreadOrdersCount(0);
-    localStorage.setItem('nb_unread_orders_count', '0');
+    safeLocalStorage.setItem('nb_unread_orders_count', '0');
     setLatestReceivedOrder(null);
   };
 
@@ -293,12 +325,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   useEffect(() => {
-    localStorage.setItem('nb_admin_alert_sound', String(adminAlertSoundEnabled));
+    safeLocalStorage.setItem('nb_admin_alert_sound', String(adminAlertSoundEnabled));
   }, [adminAlertSoundEnabled]);
 
   // Dynamic Categories Management
   const [categories, setCategories] = useState<CategoryItem[]>(() => {
-    const saved = localStorage.getItem('nb_categories');
+    const saved = safeLocalStorage.getItem('nb_categories');
     if (saved) {
       try {
         const parsed: CategoryItem[] = JSON.parse(saved);
@@ -322,7 +354,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Delivery Driver & WhatsApp Management
   const [deliveryDriver, setDeliveryDriver] = useState<DeliveryDriverConfig>(() => {
-    const saved = localStorage.getItem('nb_delivery_driver');
+    const saved = safeLocalStorage.getItem('nb_delivery_driver');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -334,11 +366,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   useEffect(() => {
-    localStorage.setItem('nb_categories', JSON.stringify(categories));
+    safeLocalStorage.setItem('nb_categories', JSON.stringify(categories));
   }, [categories]);
 
   useEffect(() => {
-    localStorage.setItem('nb_delivery_driver', JSON.stringify(deliveryDriver));
+    safeLocalStorage.setItem('nb_delivery_driver', JSON.stringify(deliveryDriver));
   }, [deliveryDriver]);
 
   // Enriched categories with real-time product counts
@@ -348,11 +380,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }));
 
   useEffect(() => {
-    localStorage.setItem('nb_products', JSON.stringify(products));
+    safeLocalStorage.setItem('nb_products', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('nb_cart', JSON.stringify(cart));
+    safeLocalStorage.setItem('nb_cart', JSON.stringify(cart));
   }, [cart]);
 
   // Sync initial state from Express backend API
@@ -425,7 +457,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setUnreadOrdersCount((prev) => {
       const next = prev + 1;
-      localStorage.setItem('nb_unread_orders_count', String(next));
+      safeLocalStorage.setItem('nb_unread_orders_count', String(next));
       return next;
     });
 
@@ -640,10 +672,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const userObj = { username: normalizedUser, name: 'NasBaladna Store Admin' };
       setIsAdminAuthenticated(true);
       setAdminUser(userObj);
-      localStorage.setItem('nb_admin_session', 'active');
-      sessionStorage.setItem('nb_admin_session', 'active');
-      localStorage.setItem('nb_admin_user', JSON.stringify(userObj));
-      sessionStorage.setItem('nb_admin_user', JSON.stringify(userObj));
+      safeLocalStorage.setItem('nb_admin_session', 'active');
+      if (typeof sessionStorage !== 'undefined') {
+        try {
+          sessionStorage.setItem('nb_admin_session', 'active');
+          sessionStorage.setItem('nb_admin_user', JSON.stringify(userObj));
+        } catch {
+          // ignore
+        }
+      }
+      safeLocalStorage.setItem('nb_admin_user', JSON.stringify(userObj));
       setCurrentView('admin');
       if (typeof window !== 'undefined') {
         window.location.hash = 'admin';
@@ -719,8 +757,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setAdminPassword(trimmedNew);
-    localStorage.setItem('nb_admin_password', trimmedNew);
-    localStorage.setItem('nb_admin_password_updated', new Date().toISOString());
+    safeLocalStorage.setItem('nb_admin_password', trimmedNew);
+    safeLocalStorage.setItem('nb_admin_password_updated', new Date().toISOString());
     api.changeAdminPassword(trimmedCurrent, trimmedNew).catch((e) => console.warn('API change password:', e));
     showToast('Admin password changed successfully! Remember your new password.');
     return { success: true, message: 'Admin password changed successfully!' };
@@ -732,8 +770,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return false;
     }
     setAdminPassword('admin');
-    localStorage.setItem('nb_admin_password', 'admin');
-    localStorage.removeItem('nb_admin_password_updated');
+    safeLocalStorage.setItem('nb_admin_password', 'admin');
+    safeLocalStorage.removeItem('nb_admin_password_updated');
     api.resetAdminPassword().catch((e) => console.warn('API reset password:', e));
     showToast('Admin password reset to default "admin"');
     return true;
@@ -742,10 +780,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const adminLogout = () => {
     setIsAdminAuthenticated(false);
     setAdminUser(null);
-    localStorage.removeItem('nb_admin_session');
-    sessionStorage.removeItem('nb_admin_session');
-    localStorage.removeItem('nb_admin_user');
-    sessionStorage.removeItem('nb_admin_user');
+    safeLocalStorage.removeItem('nb_admin_session');
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.removeItem('nb_admin_session');
+        sessionStorage.removeItem('nb_admin_user');
+      } catch {
+        // ignore
+      }
+    }
+    safeLocalStorage.removeItem('nb_admin_user');
     setCurrentView('customer');
     if (typeof window !== 'undefined') {
       window.location.hash = '';
@@ -858,7 +902,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // fallback
     }
-    localStorage.setItem(
+    safeLocalStorage.setItem(
       'nb_orders_sync_ping',
       JSON.stringify({ timestamp: Date.now(), statusUpdate: { id: orderId, status } })
     );
@@ -935,7 +979,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return false;
     }
     setCategories(CATEGORIES_DATA);
-    localStorage.setItem('nb_categories', JSON.stringify(CATEGORIES_DATA));
+    safeLocalStorage.setItem('nb_categories', JSON.stringify(CATEGORIES_DATA));
     api.resetCategories().catch((e) => console.warn('API resetCategories:', e));
     showToast('Categories & high-res images refreshed to latest defaults!');
     return true;
@@ -1096,12 +1140,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     bluePlateInfo?: { zone: string; street: string; building: string };
     customDeliveryFee?: number;
   }): Order => {
-    let baseDeliveryFee = cartTotal >= 50 ? 0 : 5.0;
-    if (serviceType === 'eco_green' && baseDeliveryFee > 0) {
-      baseDeliveryFee = 2.0; // Eco-green discounted delivery
+    let defaultDeliveryFee = 0;
+    if (isExpress || serviceType === 'express') {
+      defaultDeliveryFee = 10.0;
+    } else if (serviceType === 'eco_green') {
+      defaultDeliveryFee = cartTotal >= 50 ? 0 : 2.0;
+    } else {
+      defaultDeliveryFee = cartTotal >= 50 ? 0 : 5.0;
     }
-    const expressFee = isExpress || serviceType === 'express' ? 10.0 : 0;
-    const deliveryFee = customDeliveryFee !== undefined ? customDeliveryFee : baseDeliveryFee + expressFee;
+    const deliveryFee = customDeliveryFee !== undefined ? customDeliveryFee : defaultDeliveryFee;
     const total = cartTotal + deliveryFee;
     const orderNumber = `NB-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -1160,7 +1207,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {
       // fallback
     }
-    localStorage.setItem(
+    safeLocalStorage.setItem(
       'nb_orders_sync_ping',
       JSON.stringify({ timestamp: Date.now(), order: newOrder })
     );
@@ -1168,7 +1215,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Admin Notification Logic - notify admin immediately when website customer places an order
     setUnreadOrdersCount((prev) => {
       const next = prev + 1;
-      localStorage.setItem('nb_unread_orders_count', String(next));
+      safeLocalStorage.setItem('nb_unread_orders_count', String(next));
       return next;
     });
     setLatestReceivedOrder(newOrder);

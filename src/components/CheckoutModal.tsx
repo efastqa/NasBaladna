@@ -76,12 +76,15 @@ export const CheckoutModal: React.FC = () => {
   const [otpCode, setOtpCode] = useState('');
 
   const selectedSlot = DELIVERY_SLOTS.find((s) => s.id === deliverySlot) || DELIVERY_SLOTS[0];
-  let baseDeliveryFee = cartTotal >= 50 ? 0 : selectedSlot.fee;
-  if (serviceType === 'eco_green' && baseDeliveryFee > 0) {
-    baseDeliveryFee = 2.0; // Eco-green discounted fee
+  const isExpress = serviceType === 'express' || isExpressDelivery;
+  let deliveryFee = 0;
+  if (isExpress) {
+    deliveryFee = 10.0;
+  } else if (serviceType === 'eco_green') {
+    deliveryFee = cartTotal >= 50 ? 0 : 2.0;
+  } else {
+    deliveryFee = cartTotal >= 50 ? 0 : selectedSlot.fee;
   }
-  const expressFee = serviceType === 'express' || isExpressDelivery ? 10.0 : 0;
-  const deliveryFee = baseDeliveryFee + expressFee;
   const finalTotal = cartTotal + deliveryFee;
 
   const handleSubmitOrder = (e: React.FormEvent) => {
@@ -827,7 +830,13 @@ export const CheckoutModal: React.FC = () => {
               <span className="font-mono font-medium text-slate-900">{formatPrice(cartTotal)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Express Delivery Fee</span>
+              <span>
+                {isExpress
+                  ? 'Express Delivery (60-Min Priority)'
+                  : serviceType === 'eco_green'
+                  ? 'Eco-Green Delivery'
+                  : 'Delivery Fee'}
+              </span>
               <span className="font-mono font-medium text-slate-900">
                 {deliveryFee === 0 ? <span className="text-emerald-700 font-bold">FREE</span> : formatPrice(deliveryFee)}
               </span>

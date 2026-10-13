@@ -49,7 +49,7 @@ export const HeroBanner: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white font-['Outfit'] mb-2 leading-[1.15] text-balance"
             >
-              From Farm to Your Door
+              SHOP SMART DELIVERED FAST
             </motion.h1>
 
             {/* Subheading */}

@@ -512,10 +512,10 @@ export const INITIAL_PRODUCTS: Product[] = [
 ];
 
 export const DELIVERY_SLOTS = [
-  { id: 'express', title: 'Express Delivery (30 - 45 Mins)', badge: 'Fastest', fee: 5.0 },
   { id: 'today_afternoon', title: 'Today: 2:00 PM – 4:30 PM', badge: 'Standard', fee: 0.0 },
   { id: 'today_evening', title: 'Today: 6:00 PM – 8:30 PM', badge: 'Popular', fee: 0.0 },
   { id: 'tomorrow_morning', title: 'Tomorrow Morning: 8:00 AM – 10:30 AM', badge: 'Fresh Harvest', fee: 0.0 },
+  { id: 'express', title: 'Express Delivery (30 - 45 Mins)', badge: 'Fastest', fee: 10.0 },
 ];
 
 export const QATAR_DISTRICTS = [
