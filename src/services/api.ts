@@ -158,8 +158,15 @@ export const api = {
   },
 
   // Admin Auth & Security
-  adminLogin: async (username: string, password: string): Promise<{ success: boolean; user?: any }> => {
-    return request<{ success: boolean; user?: any }>('/admin/login', {
+  getAdminStatus: async (): Promise<{ success: boolean; isCustomPassword: boolean; adminPassword: string }> => {
+    return request<{ success: boolean; isCustomPassword: boolean; adminPassword: string }>('/admin/status');
+  },
+
+  adminLogin: async (
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; user?: any; adminPassword?: string }> => {
+    return request<{ success: boolean; user?: any; adminPassword?: string }>('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
@@ -168,15 +175,15 @@ export const api = {
   changeAdminPassword: async (
     currentPassword: string,
     newPassword: string
-  ): Promise<{ success: boolean; message: string }> => {
-    return request<{ success: boolean; message: string }>('/admin/change-password', {
+  ): Promise<{ success: boolean; message: string; adminPassword?: string }> => {
+    return request<{ success: boolean; message: string; adminPassword?: string }>('/admin/change-password', {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
   },
 
-  resetAdminPassword: async (): Promise<{ success: boolean }> => {
-    return request<{ success: boolean }>('/admin/reset-password', {
+  resetAdminPassword: async (): Promise<{ success: boolean; adminPassword?: string }> => {
+    return request<{ success: boolean; adminPassword?: string }>('/admin/reset-password', {
       method: 'POST',
     });
   },

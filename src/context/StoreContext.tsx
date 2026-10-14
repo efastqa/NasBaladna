@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   Product,
   CartItem,
@@ -138,11 +138,14 @@ interface StoreContextType {
   // Admin Authentication & Routing
   isAdminAuthenticated: boolean;
   adminUser: { username: string; name: string } | null;
-  adminLogin: (username: string, password: string) => boolean;
+  adminLogin: (username: string, password: string) => Promise<boolean> | boolean;
   adminLogout: () => void;
   adminPassword: string;
-  changeAdminPassword: (currentPassword: string, newPassword: string) => { success: boolean; message: string };
-  resetAdminPassword: () => boolean;
+  changeAdminPassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<{ success: boolean; message: string }> | { success: boolean; message: string };
+  resetAdminPassword: () => Promise<boolean> | boolean;
   currentView: 'customer' | 'admin';
   setCurrentView: (view: 'customer' | 'admin') => void;
 
@@ -247,6 +250,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isAppDownloadModalOpen, setIsAppDownloadModalOpen] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'home' | 'menu' | 'search' | 'shop' | 'cart' | 'account'>('home');
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
 
   // Admin Authentication & Authorization
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -260,7 +264,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : null;
   });
   const [adminPassword, setAdminPassword] = useState<string>(() => {
-    return safeLocalStorage.getItem('nb_admin_password') || 'admin';
+    return safeLocalStorage.getItem('nb_admin_password') || '30606701';
   });
   const [currentView, setCurrentView] = useState<'customer' | 'admin'>(() => {
     if (typeof window !== 'undefined') {
@@ -390,22 +394,45 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     safeLocalStorage.setItem('nb_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Sync initial state from Express backend API
+  // Sync initial state from Express backend API and Firestore
   useEffect(() => {
     let isMounted = true;
+    let unsubscribeAdminPass: () => void = () => {};
+
     const syncBackend = async () => {
       try {
-        const [serverProds, serverCats, serverOrders, serverDriver, serverLogs, cloudOrders] =
-          await Promise.allSettled([
-            api.getProducts(),
-            api.getCategories(),
-            api.getOrders(),
-            api.getDriver(),
-            api.getInventoryLogs(),
-            firestoreService.fetchOrders(),
-          ]);
+        const [
+          serverProds,
+          serverCats,
+          serverOrders,
+          serverDriver,
+          serverLogs,
+          cloudOrders,
+          adminStatus,
+          cloudAdminPass,
+        ] = await Promise.allSettled([
+          api.getProducts(),
+          api.getCategories(),
+          api.getOrders(),
+          api.getDriver(),
+          api.getInventoryLogs(),
+          firestoreService.fetchOrders(),
+          api.getAdminStatus(),
+          firestoreService.getAdminPassword(),
+        ]);
 
         if (!isMounted) return;
+
+        // Synchronize persisted fixed admin password across server and cloud
+        if (adminStatus.status === 'fulfilled' && adminStatus.value?.adminPassword) {
+          const syncedPass = adminStatus.value.adminPassword.trim();
+          setAdminPassword(syncedPass);
+          safeLocalStorage.setItem('nb_admin_password', syncedPass);
+        } else if (cloudAdminPass.status === 'fulfilled' && cloudAdminPass.value) {
+          const syncedPass = cloudAdminPass.value.trim();
+          setAdminPassword(syncedPass);
+          safeLocalStorage.setItem('nb_admin_password', syncedPass);
+        }
 
         if (serverProds.status === 'fulfilled' && serverProds.value.length > 0) {
           setProducts(serverProds.value);
@@ -444,13 +471,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     syncBackend();
+
+    // Live subscription for admin password updates across devices
+    try {
+      unsubscribeAdminPass = firestoreService.subscribeAdminPassword((newPass) => {
+        if (newPass && newPass.trim() && isMounted) {
+          const cleanPass = newPass.trim();
+          setAdminPassword(cleanPass);
+          safeLocalStorage.setItem('nb_admin_password', cleanPass);
+        }
+      });
+    } catch {
+      // ignore
+    }
+
     return () => {
       isMounted = false;
+      unsubscribeAdminPass();
     };
   }, []);
 
   // Helper to handle newly discovered orders from SSE, cross-tab, or server poll
   const processIncomingOrder = (incomingOrder: Order) => {
+    if (!incomingOrder || !incomingOrder.id) return;
+    if (
+      knownOrderIdsRef.current.has(incomingOrder.id) ||
+      (incomingOrder.orderNumber && knownOrderIdsRef.current.has(incomingOrder.orderNumber))
+    ) {
+      return;
+    }
+    knownOrderIdsRef.current.add(incomingOrder.id);
+    if (incomingOrder.orderNumber) {
+      knownOrderIdsRef.current.add(incomingOrder.orderNumber);
+    }
+
     setOrdersHistory((prev) => {
       if (prev.some((o) => o.id === incomingOrder.id || o.orderNumber === incomingOrder.orderNumber)) {
         return prev;
@@ -498,32 +552,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const unsubscribeFirestore = firestoreService.subscribeOrders(
       (firestoreOrders) => {
         if (!isMounted) return;
+
+        // Process any new incoming orders outside state updaters
+        firestoreOrders.forEach((fo) => {
+          if (!knownOrderIdsRef.current.has(fo.id) && !knownOrderIdsRef.current.has(fo.orderNumber)) {
+            processIncomingOrder(fo);
+          }
+        });
+
         setOrdersHistory((prev) => {
-          const prevMap = new Map(prev.map((o) => [o.id, o]));
-          const newOrdersFromRemote = firestoreOrders.filter(
-            (fo) => !prevMap.has(fo.id) && !prev.some((p) => p.orderNumber === fo.orderNumber)
+          const remoteMap = new Map(firestoreOrders.map((fo) => [fo.id, fo]));
+          const localOnly = prev.filter(
+            (p) => !remoteMap.has(p.id) && !firestoreOrders.some((fo) => fo.orderNumber === p.orderNumber)
           );
-
-          if (newOrdersFromRemote.length > 0) {
-            newOrdersFromRemote.forEach((ord) => {
-              processIncomingOrder(ord);
-            });
-            return [...newOrdersFromRemote, ...prev];
-          }
-
-          // Check if any order statuses changed in Firestore
-          const hasDiff = firestoreOrders.some((fo) => {
-            const local = prevMap.get(fo.id);
-            return local && local.status !== fo.status;
-          });
-          if (hasDiff) {
-            return prev.map((o) => {
-              const remote = firestoreOrders.find((fo) => fo.id === o.id);
-              return remote ? { ...o, status: remote.status } : o;
-            });
-          }
-
-          return prev;
+          return [...localOnly, ...firestoreOrders];
         });
       },
       (newlyAddedOrder) => {
@@ -595,32 +637,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const serverOrders = await api.getOrders();
         if (!isMounted || !Array.isArray(serverOrders)) return;
 
+        // Process any new incoming orders outside state updaters
+        serverOrders.forEach((so) => {
+          if (!knownOrderIdsRef.current.has(so.id) && !knownOrderIdsRef.current.has(so.orderNumber)) {
+            processIncomingOrder(so);
+          }
+        });
+
         setOrdersHistory((prev) => {
           const prevMap = new Map(prev.map((o) => [o.id, o]));
-          const newOrdersFromRemote = serverOrders.filter(
-            (so) => !prevMap.has(so.id) && !prev.some((p) => p.orderNumber === so.orderNumber)
-          );
-
-          if (newOrdersFromRemote.length > 0) {
-            newOrdersFromRemote.forEach((ord) => {
-              processIncomingOrder(ord);
-            });
-            return [...newOrdersFromRemote, ...prev];
-          }
-
-          // Check if any order statuses changed on server
           const hasStatusDiff = serverOrders.some((so) => {
             const local = prevMap.get(so.id);
-            return local && local.status !== so.status;
+            return !local || local.status !== so.status;
           });
-          if (hasStatusDiff) {
-            return prev.map((o) => {
-              const remote = serverOrders.find((so) => so.id === o.id);
-              return remote ? { ...o, status: remote.status } : o;
-            });
-          }
+          if (!hasStatusDiff) return prev;
 
-          return prev;
+          const remoteMap = new Map(serverOrders.map((so) => [so.id, so]));
+          const localOnly = prev.filter(
+            (p) => !remoteMap.has(p.id) && !serverOrders.some((so) => so.orderNumber === p.orderNumber)
+          );
+          return [...localOnly, ...serverOrders];
         });
       } catch {
         // quiet background poll
@@ -661,17 +697,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return config.format(amountInQar);
   };
 
-  const adminLogin = (username: string, password: string): boolean => {
-    // Secure credential check against current custom password and fallback recovery keys
+  const adminLogin = async (username: string, password: string): Promise<boolean> => {
     const normalizedUser = username.trim().toLowerCase();
     const isUserValid = normalizedUser === 'admin' || normalizedUser === 'nasbaladna';
-    const isPassValid =
-      password === adminPassword ||
-      password === 'admin' ||
-      password === 'baladna2026' ||
-      password === '77315415';
+    const trimmedPass = password.trim();
 
-    if (isUserValid && isPassValid) {
+    if (!isUserValid) {
+      showToast('Invalid administrator username. Use "admin" or "nasbaladna".');
+      return false;
+    }
+
+    let isPassValid = false;
+
+    // Check with server database first for multi-device synchronization
+    try {
+      const res = await api.adminLogin(normalizedUser, trimmedPass);
+      if (res && res.success) {
+        isPassValid = true;
+        if (res.adminPassword) {
+          const s = res.adminPassword.trim();
+          setAdminPassword(s);
+          safeLocalStorage.setItem('nb_admin_password', s);
+        }
+      }
+    } catch {
+      // If server is temporarily unreachable, check against active fixed local password
+      isPassValid = trimmedPass === adminPassword;
+    }
+
+    if (isPassValid) {
       const userObj = { username: normalizedUser, name: 'NasBaladna Store Admin' };
       setIsAdminAuthenticated(true);
       setAdminUser(userObj);
@@ -692,7 +746,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Admin authenticated successfully');
       return true;
     }
-    showToast('Invalid credentials. Access denied.');
+
+    showToast('Invalid administrator password. Access denied.');
     return false;
   };
 
@@ -726,10 +781,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const changeAdminPassword = (
+  const changeAdminPassword = async (
     currentPassword: string,
     newPassword: string
-  ): { success: boolean; message: string } => {
+  ): Promise<{ success: boolean; message: string }> => {
     if (!isAdminAuthenticated) {
       showToast('Unauthorized: Admin access required');
       return { success: false, message: 'Unauthorized: Admin access required' };
@@ -738,15 +793,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const trimmedCurrent = currentPassword.trim();
     const trimmedNew = newPassword.trim();
 
-    const isCurrentCorrect =
-      trimmedCurrent === adminPassword ||
-      trimmedCurrent === 'admin' ||
-      trimmedCurrent === 'baladna2026' ||
-      trimmedCurrent === '77315415';
-
-    if (!isCurrentCorrect) {
-      showToast('Current password is incorrect');
-      return { success: false, message: 'Current password is incorrect.' };
+    // STRICT: Current password must strictly match the active fixed password
+    if (trimmedCurrent !== adminPassword) {
+      showToast('Current password does not match active password');
+      return {
+        success: false,
+        message: 'Current password is incorrect. Please enter your active password.',
+      };
     }
 
     if (!trimmedNew || trimmedNew.length < 4) {
@@ -759,24 +812,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: false, message: 'New password cannot be the same as current password.' };
     }
 
-    setAdminPassword(trimmedNew);
-    safeLocalStorage.setItem('nb_admin_password', trimmedNew);
-    safeLocalStorage.setItem('nb_admin_password_updated', new Date().toISOString());
-    api.changeAdminPassword(trimmedCurrent, trimmedNew).catch((e) => console.warn('API change password:', e));
-    showToast('Admin password changed successfully! Remember your new password.');
-    return { success: true, message: 'Admin password changed successfully!' };
+    try {
+      // 1. Persist to server backend (writes to data/store.json)
+      await api.changeAdminPassword(trimmedCurrent, trimmedNew);
+
+      // 2. Persist to Firestore for multi-device sync
+      await firestoreService.syncAdminPassword(trimmedNew);
+
+      // 3. Update React state and local storage
+      setAdminPassword(trimmedNew);
+      safeLocalStorage.setItem('nb_admin_password', trimmedNew);
+      safeLocalStorage.setItem('nb_admin_password_updated', new Date().toISOString());
+
+      showToast('Admin password changed and fixed permanently!');
+      return {
+        success: true,
+        message: 'Admin password changed and fixed successfully! Only your new password is now active.',
+      };
+    } catch (e: any) {
+      console.warn('API error during password change, saving locally and to cloud:', e);
+      setAdminPassword(trimmedNew);
+      safeLocalStorage.setItem('nb_admin_password', trimmedNew);
+      safeLocalStorage.setItem('nb_admin_password_updated', new Date().toISOString());
+      await firestoreService.syncAdminPassword(trimmedNew);
+      showToast('Admin password changed and fixed successfully!');
+      return {
+        success: true,
+        message: 'Admin password changed and fixed successfully! Only your new password is now active.',
+      };
+    }
   };
 
-  const resetAdminPassword = (): boolean => {
+  const resetAdminPassword = async (): Promise<boolean> => {
     if (!isAdminAuthenticated) {
       showToast('Unauthorized: Admin access required');
       return false;
     }
+    try {
+      await api.resetAdminPassword();
+      await firestoreService.syncAdminPassword('admin');
+    } catch (e) {
+      console.warn('API reset password error:', e);
+    }
     setAdminPassword('admin');
     safeLocalStorage.setItem('nb_admin_password', 'admin');
     safeLocalStorage.removeItem('nb_admin_password_updated');
-    api.resetAdminPassword().catch((e) => console.warn('API reset password:', e));
-    showToast('Admin password reset to default "admin"');
+    showToast('Admin password reset to factory default "admin"');
     return true;
   };
 
@@ -1198,8 +1279,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveOrder(newOrder);
     setOrdersHistory((prev) => [newOrder, ...prev]);
 
+    knownOrderIdsRef.current.add(newOrder.id);
+    knownOrderIdsRef.current.add(newOrder.orderNumber);
+
     // 1. Sync to Google Cloud Firestore in real time (instant reflection on phone & admin laptop!)
-    firestoreService.saveOrder(newOrder).catch((e) => console.warn('Firestore saveOrder error:', e));
+    firestoreService.saveOrder(newOrder).catch((e) => console.error('Firestore saveOrder error:', e));
 
     // 2. Sync to Express backend API
     api.createOrder(newOrder).catch((e) => console.warn('API createOrder:', e));

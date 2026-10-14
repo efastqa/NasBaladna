@@ -763,49 +763,68 @@ async function startServer() {
   });
 
   // ADMIN AUTH & PASSWORD
+  app.get('/api/admin/status', (req: Request, res: Response) => {
+    res.json({
+      success: true,
+      isCustomPassword: db.adminPasswordHash !== 'admin',
+      adminPassword: db.adminPasswordHash,
+    });
+  });
+
   app.post('/api/admin/login', (req: Request, res: Response) => {
     const { username, password } = req.body;
-    if (username === 'admin' && password === db.adminPasswordHash) {
+    const normalizedUser = (username || '').trim().toLowerCase();
+    const isUserValid = normalizedUser === 'admin' || normalizedUser === 'nasbaladna';
+    const trimmedPass = (password || '').trim();
+
+    if (isUserValid && trimmedPass === db.adminPasswordHash) {
       res.json({
         success: true,
-        user: { username: 'admin', name: 'NasBaladna Farm Administrator' },
+        user: { username: normalizedUser, name: 'NasBaladna Farm Administrator' },
+        adminPassword: db.adminPasswordHash,
       });
     } else {
       res.status(401).json({
         success: false,
-        error: 'Invalid administrator credentials',
+        error: 'Invalid administrator credentials. Please check your username and password.',
       });
     }
   });
 
   app.post('/api/admin/change-password', (req: Request, res: Response) => {
     const { currentPassword, newPassword } = req.body;
-    if (currentPassword !== db.adminPasswordHash) {
+    const trimmedCurrent = (currentPassword || '').trim();
+    const trimmedNew = (newPassword || '').trim();
+
+    if (trimmedCurrent !== db.adminPasswordHash) {
       return res.status(403).json({
         success: false,
         message: 'Current password does not match.',
       });
     }
 
-    if (!newPassword || newPassword.length < 4) {
+    if (!trimmedNew || trimmedNew.length < 4) {
       return res.status(400).json({
         success: false,
         message: 'New password must be at least 4 characters long.',
       });
     }
 
-    db.adminPasswordHash = newPassword;
+    db.adminPasswordHash = trimmedNew;
     saveDatabase();
+    console.log('✅ Admin password updated and saved permanently to DB:', db.adminPasswordHash);
     res.json({
       success: true,
-      message: 'Admin password changed successfully and persisted to backend.',
+      message: 'Admin password changed successfully and fixed permanently.',
+      adminPassword: db.adminPasswordHash,
     });
   });
 
   app.post('/api/admin/reset-password', (req: Request, res: Response) => {
     db.adminPasswordHash = 'admin';
     saveDatabase();
-    res.json({ success: true, message: 'Password reset to default.' });
+    console.log('✅ Admin password reset to factory default "admin".');
+    res.json({ success: true, message: 'Password reset to factory default "admin".', adminPassword: 'admin' });
   });
 
   // SETTINGS

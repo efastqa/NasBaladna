@@ -3,17 +3,36 @@ import {
   doc,
   setDoc,
   getDocs,
+  getDoc,
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Product, Order, CategoryItem, OrderStatus } from '../types';
+
+// Recursively strip undefined fields so Firestore setDoc never throws Unsupported field value: undefined
+function sanitizeForFirestore<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore) as unknown as T;
+  }
+  if (typeof obj === 'object') {
+    const res: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        res[key] = sanitizeForFirestore(value);
+      }
+    }
+    return res as T;
+  }
+  return obj;
+}
 
 export const firestoreService = {
   // Save or update product in Firestore
   saveProduct: async (product: Product): Promise<void> => {
     try {
       const ref = doc(db, 'products', product.id);
-      await setDoc(ref, product, { merge: true });
+      await setDoc(ref, sanitizeForFirestore(product), { merge: true });
     } catch (e) {
       console.warn('Firestore saveProduct error:', e);
     }
@@ -23,14 +42,14 @@ export const firestoreService = {
   saveOrder: async (order: Order): Promise<void> => {
     try {
       const ref = doc(db, 'orders', order.id);
-      const cleanOrder = {
+      const cleanOrder = sanitizeForFirestore({
         ...order,
         createdTimestamp: (order as any).createdTimestamp || Date.now(),
-      };
+      });
       await setDoc(ref, cleanOrder, { merge: true });
       console.log('✅ Order synced to Firestore:', order.orderNumber);
     } catch (e) {
-      console.warn('Firestore saveOrder error:', e);
+      console.error('Firestore saveOrder error:', e);
     }
   },
 
@@ -120,6 +139,51 @@ export const firestoreService = {
     } catch (e) {
       console.warn('Firestore fetchOrders error:', e);
       return [];
+    }
+  },
+
+  // Save or sync admin password in Firestore for multi-device persistence
+  syncAdminPassword: async (password: string): Promise<void> => {
+    try {
+      const ref = doc(db, 'system', 'admin_config');
+      await setDoc(ref, { adminPassword: password, updatedAt: new Date().toISOString() }, { merge: true });
+      console.log('✅ Admin password synced to Firestore');
+    } catch (e) {
+      console.warn('Firestore syncAdminPassword error:', e);
+    }
+  },
+
+  getAdminPassword: async (): Promise<string | null> => {
+    try {
+      const ref = doc(db, 'system', 'admin_config');
+      const snap = await getDoc(ref);
+      if (snap.exists() && snap.data()?.adminPassword) {
+        return snap.data().adminPassword;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Firestore getAdminPassword error:', e);
+      return null;
+    }
+  },
+
+  subscribeAdminPassword: (onPasswordUpdate: (password: string) => void) => {
+    try {
+      const ref = doc(db, 'system', 'admin_config');
+      return onSnapshot(
+        ref,
+        (snap) => {
+          if (snap.exists() && snap.data()?.adminPassword) {
+            onPasswordUpdate(snap.data().adminPassword);
+          }
+        },
+        (err) => {
+          console.warn('Firestore subscribeAdminPassword error:', err);
+        }
+      );
+    } catch (e) {
+      console.warn('Firestore subscribeAdminPassword failed:', e);
+      return () => {};
     }
   },
 };

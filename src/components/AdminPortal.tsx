@@ -384,18 +384,21 @@ export const AdminPortal: React.FC = () => {
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
   const bulkSingleRowFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setIsLoggingIn(true);
 
-    setTimeout(() => {
-      const ok = adminLogin(username, password);
+    try {
+      const ok = await adminLogin(username, password);
       setIsLoggingIn(false);
       if (!ok) {
         setLoginError('Invalid administrator credentials. Please check your username and password.');
       }
-    }, 600);
+    } catch {
+      setIsLoggingIn(false);
+      setLoginError('Authentication error. Please check your connection.');
+    }
   };
 
   const handleStartEdit = (p: Product) => {
@@ -562,7 +565,7 @@ export const AdminPortal: React.FC = () => {
     });
   };
 
-  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordChangeError('');
     setPasswordChangeSuccess('');
@@ -583,18 +586,21 @@ export const AdminPortal: React.FC = () => {
     }
 
     setIsUpdatingPassword(true);
-    setTimeout(() => {
-      const res = changeAdminPassword(currentPassInput, newPassInput);
+    try {
+      const res = await changeAdminPassword(currentPassInput, newPassInput);
       setIsUpdatingPassword(false);
       if (res.success) {
-        setPasswordChangeSuccess('Admin password changed successfully! Your new password is now active.');
+        setPasswordChangeSuccess(res.message);
         setCurrentPassInput('');
         setNewPassInput('');
         setConfirmPassInput('');
       } else {
         setPasswordChangeError(res.message);
       }
-    }, 400);
+    } catch {
+      setIsUpdatingPassword(false);
+      setPasswordChangeError('Failed to change password. Please check your connection.');
+    }
   };
 
   const handleCreateProduct = (e: React.FormEvent) => {
@@ -4326,13 +4332,13 @@ export const AdminPortal: React.FC = () => {
 
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (
                           window.confirm(
-                            'Are you sure you want to reset the admin password back to default "admin"?'
+                            'Are you sure you want to reset the admin password back to factory default "admin"?'
                           )
                         ) {
-                          resetAdminPassword();
+                          await resetAdminPassword();
                           setPasswordChangeSuccess('Admin password has been reset to factory default "admin".');
                           setPasswordChangeError('');
                           setCurrentPassInput('');
@@ -4370,10 +4376,10 @@ export const AdminPortal: React.FC = () => {
                       <span className="text-slate-400 text-[11px] block">Password Status:</span>
                       <span className="font-bold text-emerald-400 text-xs flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {adminPassword === 'admin' ? 'Default Password in Use' : 'Custom Password Active'}
+                        {adminPassword === 'admin' ? 'Default Password in Use ("admin")' : 'Custom Fixed Password Active'}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        Stored securely in browser local storage
+                        Fixed permanently across backend database & all devices
                       </span>
                     </div>
 
@@ -4392,13 +4398,13 @@ export const AdminPortal: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-[11px] text-amber-300/90 space-y-1 mt-3">
-                  <span className="font-bold block flex items-center gap-1 text-amber-300">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    Emergency Recovery
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 space-y-1 mt-3">
+                  <span className="font-bold block flex items-center gap-1 text-emerald-400">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Strict Security Enforcement
                   </span>
-                  <p>
-                    If you ever misplace your password, the system also accepts the master owner recovery key linked to the Qatar store phone: <b>77315415</b>.
+                  <p className="text-slate-400 leading-relaxed">
+                    Once you change the administrator password, it is fixed permanently. Old default passwords and bypasses are completely disabled. Keep your new password secure.
                   </p>
                 </div>
               </div>
