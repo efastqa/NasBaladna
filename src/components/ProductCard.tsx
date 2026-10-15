@@ -36,8 +36,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5, transition: { duration: 0.2 } }}
       onClick={() => setSelectedProduct(product)}
       className="group bg-white rounded-2xl border border-slate-200/80 p-3 sm:p-4 flex flex-col justify-between transition-all duration-200 hover:shadow-lg hover:border-emerald-300 cursor-pointer relative"
     >

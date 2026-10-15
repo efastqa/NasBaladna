@@ -135,8 +135,15 @@ const MainStoreContent: React.FC = () => {
         {/* Category 3D Cards Grid matching IMG_5613 */}
         <CategoryGrid />
 
-        {/* Fresh Produce Catalog */}
-        <section id="produce" className="pt-2">
+        {/* Fresh Produce Catalog with Scroll Reveal Animation */}
+        <motion.section
+          id="produce"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.05 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="pt-2"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 font-['Outfit']">
@@ -212,10 +219,16 @@ const MainStoreContent: React.FC = () => {
               ))}
             </div>
           )}
-        </section>
+        </motion.section>
 
-        {/* Quality & Farm Direct Promise Section */}
-        <section className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-8 space-y-4">
+        {/* Quality & Farm Direct Promise Section with Stagger Animation */}
+        <motion.section
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-8 space-y-4"
+        >
           <div className="max-w-xl">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
               Why NasBaladna
@@ -229,37 +242,55 @@ const MainStoreContent: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-3">
-              <Truck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <motion.div
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+              className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-3 transition-colors hover:bg-emerald-50"
+            >
+              <div className="p-2 rounded-xl bg-emerald-100/80 text-emerald-700 shrink-0 mt-0.5">
+                <Truck className="w-5 h-5" />
+              </div>
               <div>
                 <h4 className="font-bold text-xs sm:text-sm text-slate-900">35-Min Express Home Delivery</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Chilled cold-chain delivery straight to your doorstep across Qatar.
                 </p>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-100 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-teal-700 shrink-0 mt-0.5" />
+            <motion.div
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+              className="p-4 rounded-2xl bg-teal-50/60 border border-teal-100 flex items-start gap-3 transition-colors hover:bg-teal-50"
+            >
+              <div className="p-2 rounded-xl bg-teal-100/80 text-teal-700 shrink-0 mt-0.5">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
               <div>
                 <h4 className="font-bold text-xs sm:text-sm text-slate-900">100% Pesticide-Free</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Certified organic soils and eco-friendly closed-loop hydroponics.
                 </p>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex items-start gap-3">
-              <RotateCcw className="w-5 h-5 text-sky-700 shrink-0 mt-0.5" />
+            <motion.div
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+              className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex items-start gap-3 transition-colors hover:bg-sky-50"
+            >
+              <div className="p-2 rounded-xl bg-sky-100/80 text-sky-700 shrink-0 mt-0.5">
+                <RotateCcw className="w-5 h-5" />
+              </div>
               <div>
                 <h4 className="font-bold text-xs sm:text-sm text-slate-900">Zero-Fuss Freshness Guarantee</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Instant refund or replacement if any item does not meet your quality expectations.
                 </p>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Dedicated App Download Section */}
         <AppDownloadSection />

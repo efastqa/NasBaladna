@@ -36,10 +36,30 @@ export const AppDownloadSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-10 border border-emerald-800/60 shadow-xl my-8">
+    <motion.section
+      initial={{ opacity: 0, y: 32 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white p-6 sm:p-10 border border-emerald-800/60 shadow-xl my-8"
+    >
       {/* Background ambient lighting */}
-      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-10 -mb-20 w-72 h-72 rounded-full bg-teal-400/10 blur-3xl pointer-events-none" />
+      <motion.div
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.15, 0.25, 0.15],
+        }}
+        transition={{ repeat: Infinity, duration: 9, ease: 'easeInOut' }}
+        className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.1, 0.2, 0.1],
+        }}
+        transition={{ repeat: Infinity, duration: 11, ease: 'easeInOut' }}
+        className="absolute bottom-0 left-10 -mb-20 w-72 h-72 rounded-full bg-teal-400/10 blur-3xl pointer-events-none"
+      />
 
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* Left Column: Value Prop & CTA */}
@@ -105,7 +125,9 @@ export const AppDownloadSection: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-3">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 if (isInstallable) {
                   install();
@@ -113,27 +135,34 @@ export const AppDownloadSection: React.FC = () => {
                   setIsAppDownloadModalOpen(true);
                 }
               }}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg hover:shadow-emerald-500/25 transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg hover:shadow-emerald-500/25 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>{isInstalled ? 'App Installed ✓' : 'Install NasBaladna App'}</span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => setIsAppDownloadModalOpen(true)}
               className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <Smartphone className="w-4 h-4 text-emerald-300" />
               <span>iOS & Android Options</span>
               <ArrowRight className="w-3.5 h-3.5 text-emerald-300" />
-            </button>
+            </motion.button>
           </div>
         </div>
 
         {/* Right Column: Phone Mockup & Scan QR */}
         <div className="lg:col-span-5 flex flex-col sm:flex-row items-center justify-center lg:justify-end gap-5">
-          {/* QR Code Card */}
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/30 text-slate-900 text-center w-full sm:w-auto max-w-[210px] shrink-0">
+          {/* QR Code Card with Subtle Gentle Floating Animation */}
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+            whileHover={{ scale: 1.04 }}
+            className="bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/30 text-slate-900 text-center w-full sm:w-auto max-w-[210px] shrink-0"
+          >
             <div className="w-36 h-36 mx-auto bg-white rounded-xl p-1 border border-slate-100 flex items-center justify-center">
               {qrCodeUrl ? (
                 <img
@@ -153,7 +182,7 @@ export const AppDownloadSection: React.FC = () => {
                 Point your phone camera
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick Store badges column */}
           <div className="flex flex-col gap-2.5 w-full sm:w-auto">
@@ -219,6 +248,6 @@ export const AppDownloadSection: React.FC = () => {
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 };
