@@ -1,6 +1,37 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      // Suppress harmless Vite HMR WebSocket errors in AI Studio iframe environment
+      (function() {
+        var origError = console.error;
+        console.error = function() {
+          var arg = arguments[0];
+          if (
+            typeof arg === 'string' &&
+            (arg.indexOf('[vite]') !== -1 || arg.indexOf('websocket') !== -1 || arg.indexOf('WebSocket') !== -1)
+          ) {
+            return;
+          }
+          if (arg instanceof Error && (arg.message.indexOf('WebSocket') !== -1 || arg.message.indexOf('closed without opened') !== -1)) {
+            return;
+          }
+          return origError.apply(console, arguments);
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+          if (
+            e.reason &&
+            (
+              (typeof e.reason === 'string' && (e.reason.indexOf('WebSocket') !== -1 || e.reason.indexOf('vite') !== -1)) ||
+              (typeof e.reason.message === 'string' && (e.reason.message.indexOf('WebSocket') !== -1 || e.reason.message.indexOf('closed without opened') !== -1 || e.reason.message.indexOf('vite') !== -1))
+            )
+          ) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>NasBaladna - Fresh Produce & Grocery Delivery</title>

@@ -1,12 +1,16 @@
 export type CategoryType =
   | 'all'
+  | 'near_expiry'
   | 'vegetables'
   | 'fruits'
   | 'dairy'
   | 'bakery'
   | 'herbs'
   | 'juices'
-  | 'near_expiry'
+  | 'biscuits'
+  | 'chocolates'
+  | 'spices'
+  | 'chips'
   | (string & {});
 
 export interface CategoryItem {

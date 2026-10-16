@@ -72,6 +72,42 @@ const DEFAULT_CATEGORIES = [
     badge: 'Cold Pressed',
   },
   {
+    id: 'biscuits',
+    name: 'Biscuits',
+    image: '/src/assets/images/category_biscuits_1792155918674.jpg',
+    bgColor: 'bg-amber-50/80',
+    borderColor: 'border-amber-200/60',
+    itemCount: 8,
+    badge: 'Baked Fresh',
+  },
+  {
+    id: 'chocolates',
+    name: 'Chocolates',
+    image: '/src/assets/images/category_chocolates_1792155919581.jpg',
+    bgColor: 'bg-stone-50/80',
+    borderColor: 'border-amber-900/20',
+    itemCount: 6,
+    badge: 'Artisan Cocoa',
+  },
+  {
+    id: 'spices',
+    name: 'Spices',
+    image: '/src/assets/images/category_spices_1792155919303.jpg',
+    bgColor: 'bg-red-50/80',
+    borderColor: 'border-red-200/60',
+    itemCount: 9,
+    badge: 'Aromatic Pick',
+  },
+  {
+    id: 'chips',
+    name: 'Chips',
+    image: '/src/assets/images/category_chips_1792155919614.jpg',
+    bgColor: 'bg-yellow-50/80',
+    borderColor: 'border-yellow-200/60',
+    itemCount: 7,
+    badge: 'Crispy Snack',
+  },
+  {
     id: 'near_expiry',
     name: 'Near Expiry Deals',
     image: '/src/assets/images/category_near_expiry_1791446529518.jpg',
@@ -854,6 +890,7 @@ async function startServer() {
       },
       appType: 'spa',
     });
+
     app.use(vite.middlewares);
   } else {
     // In prod: serve dist files

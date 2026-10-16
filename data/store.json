@@ -287,6 +287,273 @@
       "wholesalePrice": 60,
       "wholesaleUnit": "10 x 1L Case",
       "isWholesaleEligible": true
+    },
+    {
+      "id": "nb-bsc-shortbread",
+      "name": "Artisan Pure Butter Shortbread Biscuits",
+      "category": "biscuits",
+      "brand": "NasBaladna Farm Pantry",
+      "sku": "NB-BSC-001",
+      "basePrice": 14,
+      "baseWeight": "250g Box",
+      "weightOptions": [
+        {
+          "weight": "250g Box",
+          "multiplier": 1
+        },
+        {
+          "weight": "500g Tin",
+          "multiplier": 1.85
+        }
+      ],
+      "stock": 28,
+      "image": "/src/assets/images/category_biscuits_1792155918674.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_biscuits_1792155918674.jpg"
+      ],
+      "description": "Traditional slow-baked pure butter Scottish-style shortbread fingers, melt-in-the-mouth texture with rich cream butter flavor.",
+      "origin": "NasBaladna Hearth Bakery",
+      "farm": "Farm Pantry Kitchen",
+      "organic": true,
+      "benefits": [
+        "Made with 100% natural creamery butter",
+        "Zero palm oil, preservatives, or artificial flavorings",
+        "Pair wonderfully with fresh cardamom milk tea"
+      ],
+      "storageAdvice": "Store in an airtight container in a cool, dry pantry."
+    },
+    {
+      "id": "nb-bisc-cookies",
+      "name": "Gourmet Cocoa Swirl & Butter Tea Biscuits",
+      "category": "biscuits",
+      "brand": "NasBaladna Farm Pantry",
+      "sku": "NB-BSC-002",
+      "basePrice": 11.5,
+      "baseWeight": "300g Pack",
+      "weightOptions": [
+        {
+          "weight": "300g Pack",
+          "multiplier": 1
+        },
+        {
+          "weight": "2 x 300g Packs",
+          "multiplier": 1.9
+        }
+      ],
+      "stock": 35,
+      "image": "/src/assets/images/category_biscuits_1792155918674.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_biscuits_1792155918674.jpg"
+      ],
+      "description": "Crisp, golden-baked tea cookies with delicate swirls of Belgian cocoa and madagascar vanilla.",
+      "origin": "NasBaladna Hearth Bakery",
+      "farm": "Farm Pantry Kitchen",
+      "organic": false,
+      "benefits": [
+        "Light, crunchy golden bake perfect with afternoon tea",
+        "Real vanilla pod extract and dutch-processed cocoa"
+      ],
+      "storageAdvice": "Keep sealed in a cool, dry place."
+    },
+    {
+      "id": "nb-choc-truffles",
+      "name": "Artisanal Single-Origin Cocoa Truffles",
+      "category": "chocolates",
+      "brand": "NasBaladna Chocolatier",
+      "sku": "NB-CHC-001",
+      "basePrice": 24,
+      "baseWeight": "180g Box (12 pcs)",
+      "weightOptions": [
+        {
+          "weight": "180g Box (12 pcs)",
+          "multiplier": 1
+        },
+        {
+          "weight": "360g Gift Box (24 pcs)",
+          "multiplier": 1.85
+        }
+      ],
+      "stock": 20,
+      "image": "/src/assets/images/category_chocolates_1792155919581.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_chocolates_1792155919581.jpg"
+      ],
+      "description": "Velvety dark chocolate ganache infused with organic cream, dusted in Dutch cocoa powder and crushed caramelized almonds.",
+      "origin": "NasBaladna Artisan Confectionery",
+      "farm": "Confectionery Workshop",
+      "organic": true,
+      "benefits": [
+        "Crafted with 70% single-origin dark cocoa",
+        "Rich in natural flavonoids and antioxidants",
+        "Elegant luxury packaging suitable for gifting"
+      ],
+      "storageAdvice": "Keep chilled between 14°C and 18°C."
+    },
+    {
+      "id": "nb-choc-dark-bar",
+      "name": "Handcrafted 70% Dark Chocolate & Sea Salt Bar",
+      "category": "chocolates",
+      "brand": "NasBaladna Chocolatier",
+      "sku": "NB-CHC-002",
+      "basePrice": 13.5,
+      "baseWeight": "100g Bar",
+      "weightOptions": [
+        {
+          "weight": "100g Bar",
+          "multiplier": 1
+        },
+        {
+          "weight": "3-Pack Collection (300g)",
+          "multiplier": 2.7
+        }
+      ],
+      "stock": 30,
+      "image": "/src/assets/images/category_chocolates_1792155919581.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_chocolates_1792155919581.jpg"
+      ],
+      "description": "Velvety smooth bean-to-bar dark chocolate with hand-harvested sea salt flakes and roasted whole almond pieces.",
+      "origin": "NasBaladna Artisan Confectionery",
+      "farm": "Confectionery Workshop",
+      "organic": true,
+      "benefits": [
+        "Zero refined white sugar or artificial emulsifiers",
+        "Grown and traded under strict ethical fair-trade sourcing"
+      ],
+      "storageAdvice": "Store in a cool, dry cabinet away from direct sunlight."
+    },
+    {
+      "id": "nb-spc-royal-saffron",
+      "name": "Grade-A Royal Persian Saffron Threads",
+      "category": "spices",
+      "brand": "NasBaladna Spice Vault",
+      "sku": "NB-SPC-001",
+      "basePrice": 38,
+      "baseWeight": "2g Tin",
+      "weightOptions": [
+        {
+          "weight": "2g Tin",
+          "multiplier": 1
+        },
+        {
+          "weight": "5g Luxury Jar",
+          "multiplier": 2.3
+        }
+      ],
+      "stock": 18,
+      "image": "/src/assets/images/category_spices_1792155919303.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_spices_1792155919303.jpg"
+      ],
+      "description": "Sargol super-negin whole crimson saffron threads. Deep intoxicating aroma, intense ruby coloration, and unparalleled depth for biryani, tea, or rice.",
+      "origin": "Direct Mountain Harvest",
+      "farm": "Certified Spice Growers",
+      "organic": true,
+      "benefits": [
+        "Highest ISO 3632 coloring power rating (>250)",
+        "100% pure handpicked stigmata with zero yellow styles",
+        "Natural mood and wellness booster"
+      ],
+      "storageAdvice": "Store in the sealed metal tin in a dark, cool pantry."
+    },
+    {
+      "id": "nb-spc-ceylon-cinnamon",
+      "name": "Organic Ceylon Cinnamon Quills & Bark",
+      "category": "spices",
+      "brand": "NasBaladna Spice Vault",
+      "sku": "NB-SPC-002",
+      "basePrice": 16,
+      "baseWeight": "100g Jar",
+      "weightOptions": [
+        {
+          "weight": "100g Jar",
+          "multiplier": 1
+        },
+        {
+          "weight": "250g Pouch",
+          "multiplier": 2.1
+        }
+      ],
+      "stock": 25,
+      "image": "/src/assets/images/category_spices_1792155919303.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_spices_1792155919303.jpg"
+      ],
+      "description": "True Ceylon cinnamon (Cinnamomum verum) fragrant soft quills. Delicately sweet aroma with low coumarin content, ideal for pastries, curries, and teas.",
+      "origin": "NasBaladna Organic Spices",
+      "farm": "Partner Spice Estates",
+      "organic": true,
+      "benefits": [
+        "True Ceylon variety with minimal natural coumarin",
+        "Smooth sweet warmth with no harsh astringency"
+      ],
+      "storageAdvice": "Keep tightly closed in its glass jar away from moisture."
+    },
+    {
+      "id": "nb-chips-kettle-sea-salt",
+      "name": "Kettle-Cooked Sea Salt Potato Crisps",
+      "category": "chips",
+      "brand": "NasBaladna Crunch Lab",
+      "sku": "NB-CHP-001",
+      "basePrice": 8.5,
+      "baseWeight": "150g Bag",
+      "weightOptions": [
+        {
+          "weight": "150g Bag",
+          "multiplier": 1
+        },
+        {
+          "weight": "2 x 150g Party Pack",
+          "multiplier": 1.85
+        }
+      ],
+      "stock": 40,
+      "image": "/src/assets/images/category_chips_1792155919614.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_chips_1792155919614.jpg"
+      ],
+      "description": "Thick-cut farm russet potatoes kettle-fried in pure sunflower oil and seasoned with hand-harvested flaky sea salt. Maximum golden crunch!",
+      "origin": "NasBaladna Farm Kitchens",
+      "farm": "Potato Harvest Lot #1",
+      "organic": false,
+      "benefits": [
+        "Cooked in small batches for extraordinary crunch",
+        "Zero MSG, artificial preservatives, or trans fats"
+      ],
+      "storageAdvice": "Store in a dry pantry. Reseal tightly after opening."
+    },
+    {
+      "id": "nb-chips-nacho-lime",
+      "name": "Artisan Stone-Ground Tortilla Crisps (Lime & Pepper)",
+      "category": "chips",
+      "brand": "NasBaladna Crunch Lab",
+      "sku": "NB-CHP-002",
+      "basePrice": 9.5,
+      "baseWeight": "175g Bag",
+      "weightOptions": [
+        {
+          "weight": "175g Bag",
+          "multiplier": 1
+        },
+        {
+          "weight": "2 x 175g Bags",
+          "multiplier": 1.85
+        }
+      ],
+      "stock": 32,
+      "image": "/src/assets/images/category_chips_1792155919614.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_chips_1792155919614.jpg"
+      ],
+      "description": "Non-GMO stone-ground corn chips seasoned with zesty sun-ripened lime, cracked black pepper, and pink Himalayan salt.",
+      "origin": "NasBaladna Farm Kitchens",
+      "farm": "Corn Harvest Sector 3",
+      "organic": true,
+      "benefits": [
+        "Made from non-GMO stone-ground whole corn kernels",
+        "Perfect sturdy chip for guacamole and salsa dipping"
+      ],
+      "storageAdvice": "Store in a cool dry place."
     }
   ],
   "categories": [
@@ -352,6 +619,42 @@
       "borderColor": "border-rose-200/60",
       "itemCount": 6,
       "badge": "Save 50%"
+    },
+    {
+      "id": "biscuits",
+      "name": "Biscuits",
+      "image": "/src/assets/images/category_biscuits_1792155918674.jpg",
+      "bgColor": "bg-amber-50/80",
+      "borderColor": "border-amber-200/60",
+      "itemCount": 8,
+      "badge": "Baked Fresh"
+    },
+    {
+      "id": "chocolates",
+      "name": "Chocolates",
+      "image": "/src/assets/images/category_chocolates_1792155919581.jpg",
+      "bgColor": "bg-stone-50/80",
+      "borderColor": "border-amber-900/20",
+      "itemCount": 6,
+      "badge": "Artisan Cocoa"
+    },
+    {
+      "id": "spices",
+      "name": "Spices",
+      "image": "/src/assets/images/category_spices_1792155919303.jpg",
+      "bgColor": "bg-red-50/80",
+      "borderColor": "border-red-200/60",
+      "itemCount": 9,
+      "badge": "Aromatic Pick"
+    },
+    {
+      "id": "chips",
+      "name": "Chips",
+      "image": "/src/assets/images/category_chips_1792155919614.jpg",
+      "bgColor": "bg-yellow-50/80",
+      "borderColor": "border-yellow-200/60",
+      "itemCount": 7,
+      "badge": "Crispy Snack"
     }
   ],
   "orders": [

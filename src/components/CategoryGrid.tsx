@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { CategoryType } from '../types';
-import { Sparkles, Carrot, Apple, Milk, Wheat, Leaf, Citrus, Clock, Tag, Check, ArrowRight } from 'lucide-react';
+import { Sparkles, Carrot, Apple, Milk, Wheat, Leaf, Citrus, Clock, Tag, Check, ArrowRight, Cookie, Flame } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const CategoryCardImage: React.FC<{
@@ -62,6 +62,14 @@ export const CategoryGrid: React.FC = () => {
         return <Leaf className="w-10 h-10 text-teal-600" />;
       case 'juices':
         return <Citrus className="w-10 h-10 text-orange-600" />;
+      case 'biscuits':
+        return <Cookie className="w-10 h-10 text-amber-700" />;
+      case 'chocolates':
+        return <Sparkles className="w-10 h-10 text-amber-900" />;
+      case 'spices':
+        return <Flame className="w-10 h-10 text-red-600" />;
+      case 'chips':
+        return <Wheat className="w-10 h-10 text-yellow-600" />;
       default:
         return <Sparkles className="w-10 h-10 text-emerald-600" />;
     }
