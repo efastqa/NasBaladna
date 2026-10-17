@@ -554,6 +554,275 @@
         "Perfect sturdy chip for guacamole and salsa dipping"
       ],
       "storageAdvice": "Store in a cool dry place."
+    },
+    {
+      "id": "nb-dates-medjool",
+      "name": "Royal Organic Medjool Dates (Jumbo)",
+      "category": "dates_nuts",
+      "brand": "NasBaladna Oasis Reserve",
+      "sku": "NB-DAT-001",
+      "basePrice": 28,
+      "baseWeight": "500g Gift Box",
+      "weightOptions": [
+        {
+          "weight": "500g Gift Box",
+          "multiplier": 1
+        },
+        {
+          "weight": "1kg Wooden Box",
+          "multiplier": 1.9
+        }
+      ],
+      "stock": 25,
+      "image": "/src/assets/images/category_dates_nuts_1792234291328.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_dates_nuts_1792234291328.jpg"
+      ],
+      "description": "Hand-selected succulent jumbo Medjool dates with soft caramel texture and deep honeyed sweetness. Grown organically with pure artesian water.",
+      "origin": "Direct Desert Oasis Harvest",
+      "farm": "Oasis Date Groves",
+      "organic": true,
+      "benefits": [
+        "Natural energy booster rich in potassium and fiber",
+        "Zero added sugars, preservatives, or sulfites",
+        "Traditional welcome pairing with Arabic cardamom coffee"
+      ],
+      "storageAdvice": "Store refrigerated to maintain peak plumpness and chewiness."
+    },
+    {
+      "id": "nb-nuts-almonds-pistachios",
+      "name": "Roasted Salted California Pistachios & Raw Almonds Mix",
+      "category": "dates_nuts",
+      "brand": "NasBaladna Nut Roastery",
+      "sku": "NB-NUT-001",
+      "basePrice": 32,
+      "baseWeight": "400g Glass Jar",
+      "weightOptions": [
+        {
+          "weight": "400g Glass Jar",
+          "multiplier": 1
+        },
+        {
+          "weight": "800g Value Pack",
+          "multiplier": 1.85
+        }
+      ],
+      "stock": 30,
+      "image": "/src/assets/images/category_dates_nuts_1792234291328.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_dates_nuts_1792234291328.jpg"
+      ],
+      "description": "Premium colossal pistachios lightly dry-roasted with sea salt paired with whole unpasteurized raw Mediterranean almonds.",
+      "origin": "Selected Sustainable Orchards",
+      "farm": "Artisan Roaster Lot 4",
+      "organic": false,
+      "benefits": [
+        "High in heart-healthy plant protein and antioxidant lutein",
+        "Dry-roasted without oils or artificial colorings"
+      ],
+      "storageAdvice": "Keep jar sealed tightly in a cool pantry."
+    },
+    {
+      "id": "nb-honey-sidr",
+      "name": "Wild Mountain Royal Sidr Honey (Raw & Unfiltered)",
+      "category": "honey_oils",
+      "brand": "NasBaladna Apiaries",
+      "sku": "NB-HNY-001",
+      "basePrice": 65,
+      "baseWeight": "500g Glass Jar",
+      "weightOptions": [
+        {
+          "weight": "500g Glass Jar",
+          "multiplier": 1
+        },
+        {
+          "weight": "1kg Master Jar",
+          "multiplier": 1.9
+        }
+      ],
+      "stock": 18,
+      "image": "/src/assets/images/category_honey_oils_1792234292517.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_honey_oils_1792234292517.jpg"
+      ],
+      "description": "Monofloral honey harvested exclusively from ancient Sidr (Lote) tree blossoms. Famous for its thick amber body, complex butterscotch notes, and potent antibacterial properties.",
+      "origin": "High Mountain Valleys",
+      "farm": "Pristine Wild Apiaries",
+      "organic": true,
+      "benefits": [
+        "100% pure, unpasteurized and enzyme-active",
+        "Legendary therapeutic and immunity support",
+        "Tested for purity and pollen integrity"
+      ],
+      "storageAdvice": "Store at ambient room temperature away from heat."
+    },
+    {
+      "id": "nb-oil-evoo",
+      "name": "Cold-Pressed First-Harvest Extra Virgin Olive Oil",
+      "category": "honey_oils",
+      "brand": "NasBaladna Press",
+      "sku": "NB-OIL-001",
+      "basePrice": 38,
+      "baseWeight": "750ml Dark Bottle",
+      "weightOptions": [
+        {
+          "weight": "750ml Dark Bottle",
+          "multiplier": 1
+        },
+        {
+          "weight": "2L Reserve Tin",
+          "multiplier": 2.2
+        }
+      ],
+      "stock": 24,
+      "image": "/src/assets/images/category_honey_oils_1792234292517.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_honey_oils_1792234292517.jpg"
+      ],
+      "description": "Single-estate early harvest olive oil mechanically extracted below 24°C within hours of picking. Robust peppery finish with notes of freshly cut grass and green artichoke.",
+      "origin": "Mediterranean Organic Groves",
+      "farm": "Estate Mill Selection",
+      "organic": true,
+      "benefits": [
+        "Acidity level guaranteed below 0.25%",
+        "Very high polyphenol content (>450 mg/kg)",
+        "Dark UV-protective glass bottle preserves delicate antioxidants"
+      ],
+      "storageAdvice": "Store in a cool dark pantry away from stovetop heat."
+    },
+    {
+      "id": "nb-coffee-gahwa",
+      "name": "Traditional Heirloom Arabic Coffee with Green Cardamom",
+      "category": "tea_coffee",
+      "brand": "NasBaladna Roastery",
+      "sku": "NB-COF-001",
+      "basePrice": 22,
+      "baseWeight": "250g Sealed Tin",
+      "weightOptions": [
+        {
+          "weight": "250g Sealed Tin",
+          "multiplier": 1
+        },
+        {
+          "weight": "500g Value Pack",
+          "multiplier": 1.85
+        }
+      ],
+      "stock": 35,
+      "image": "/src/assets/images/category_tea_coffee_1792234292504.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_tea_coffee_1792234292504.jpg"
+      ],
+      "description": "Authentic Gulf-style blonde roast 100% Arabica beans freshly ground with whole crushed green Guatemala cardamom pods and hints of saffron.",
+      "origin": "Yemeni & Ethiopian Highlands",
+      "farm": "Specialty Roasting House",
+      "organic": true,
+      "benefits": [
+        "Gentle digestive spices with aromatic cardamom fragrance",
+        "Authentic heritage recipe for traditional Dallah brewing"
+      ],
+      "storageAdvice": "Keep tin tightly sealed in refrigerator after opening."
+    },
+    {
+      "id": "nb-tea-jasmine-mint",
+      "name": "Organic High-Mountain Jasmine Green Tea Pearls",
+      "category": "tea_coffee",
+      "brand": "NasBaladna Tea Garden",
+      "sku": "NB-TEA-001",
+      "basePrice": 19,
+      "baseWeight": "120g Tin",
+      "weightOptions": [
+        {
+          "weight": "120g Tin",
+          "multiplier": 1
+        },
+        {
+          "weight": "250g Pouch",
+          "multiplier": 1.9
+        }
+      ],
+      "stock": 28,
+      "image": "/src/assets/images/category_tea_coffee_1792234292504.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_tea_coffee_1792234292504.jpg"
+      ],
+      "description": "Tender hand-rolled young green tea buds naturally scented multiple nights with fresh blooming night jasmine flowers. Delicately sweet and soothing floral infusion.",
+      "origin": "Mist-Covered High Mountain Gardens",
+      "farm": "Certified Organic Tea Estate",
+      "organic": true,
+      "benefits": [
+        "Natural calm and mental focus via L-theanine and antioxidants",
+        "Whole unbroken tea pearls unfurl beautifully in glass teapots"
+      ],
+      "storageAdvice": "Keep in an airtight container protected from aromas."
+    },
+    {
+      "id": "nb-eggs-pasture",
+      "name": "Free-Range Pasture-Raised Organic Brown Eggs (15-Pack)",
+      "category": "poultry_eggs",
+      "brand": "NasBaladna Farmstead",
+      "sku": "NB-EGG-001",
+      "basePrice": 18,
+      "baseWeight": "15 Eggs Carton",
+      "weightOptions": [
+        {
+          "weight": "15 Eggs Carton",
+          "multiplier": 1
+        },
+        {
+          "weight": "30 Eggs Tray",
+          "multiplier": 1.9
+        }
+      ],
+      "stock": 45,
+      "image": "/src/assets/images/category_poultry_eggs_1792234292136.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_poultry_eggs_1792234292136.jpg"
+      ],
+      "description": "Farm-collected daily from free-roaming hens with 24/7 pasture access. Deep amber yolks, strong shells, and rich natural flavor.",
+      "origin": "NasBaladna Open Pastures",
+      "farm": "Free-Range Coop Sector 1",
+      "organic": true,
+      "benefits": [
+        "Hens fed 100% vegetarian non-GMO organic feed and green grass",
+        "High in natural Omega-3 fatty acids and Vitamin D",
+        "Zero hormones, prophylactic antibiotics, or cage confinement"
+      ],
+      "storageAdvice": "Keep refrigerated between 2°C and 4°C."
+    },
+    {
+      "id": "nb-poultry-chicken",
+      "name": "Fresh Corn-Fed Whole Farm Chicken (Tender Harvest)",
+      "category": "poultry_eggs",
+      "brand": "NasBaladna Farmstead",
+      "sku": "NB-PLT-001",
+      "basePrice": 26,
+      "baseWeight": "1.2kg Whole Chicken",
+      "weightOptions": [
+        {
+          "weight": "1.2kg Whole Chicken",
+          "multiplier": 1
+        },
+        {
+          "weight": "2 x 1.2kg Twin Pack",
+          "multiplier": 1.9
+        }
+      ],
+      "stock": 20,
+      "image": "/src/assets/images/category_poultry_eggs_1792234292136.jpg",
+      "thumbnails": [
+        "/src/assets/images/category_poultry_eggs_1792234292136.jpg"
+      ],
+      "description": "Premium grain-fed whole chicken raised with natural ventilation and spacious barns. Exceptionally tender, juicy meat with golden skin.",
+      "origin": "NasBaladna Farmstead Poultry",
+      "farm": "Poultry Farm Lot 2",
+      "organic": true,
+      "benefits": [
+        "100% Halal hand-slaughtered and clean chilled",
+        "Air-chilled to lock in pure chicken flavor with no added water",
+        "Never frozen, arrives fresh in temperature-controlled cooler packaging"
+      ],
+      "storageAdvice": "Store in coldest zone of refrigerator (0°C to 2°C) or cook within 48 hours."
     }
   ],
   "categories": [
@@ -655,6 +924,42 @@
       "borderColor": "border-yellow-200/60",
       "itemCount": 7,
       "badge": "Crispy Snack"
+    },
+    {
+      "id": "dates_nuts",
+      "name": "Dates & Nuts",
+      "image": "/src/assets/images/category_dates_nuts_1792234291328.jpg",
+      "bgColor": "bg-[#FDF4E7]",
+      "borderColor": "border-[#F8DCB5]",
+      "itemCount": 8,
+      "badge": "Desert Harvest"
+    },
+    {
+      "id": "honey_oils",
+      "name": "Honey & Oils",
+      "image": "/src/assets/images/category_honey_oils_1792234292517.jpg",
+      "bgColor": "bg-[#FEFCE8]",
+      "borderColor": "border-[#FEF08A]",
+      "itemCount": 6,
+      "badge": "Cold-Pressed"
+    },
+    {
+      "id": "tea_coffee",
+      "name": "Tea & Coffee",
+      "image": "/src/assets/images/category_tea_coffee_1792234292504.jpg",
+      "bgColor": "bg-[#F4F6F0]",
+      "borderColor": "border-[#DDE4D0]",
+      "itemCount": 10,
+      "badge": "Single Origin"
+    },
+    {
+      "id": "poultry_eggs",
+      "name": "Poultry & Eggs",
+      "image": "/src/assets/images/category_poultry_eggs_1792234292136.jpg",
+      "bgColor": "bg-[#FFF8F3]",
+      "borderColor": "border-[#FFE0CC]",
+      "itemCount": 5,
+      "badge": "Pasture Raised"
     }
   ],
   "orders": [

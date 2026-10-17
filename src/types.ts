@@ -11,6 +11,10 @@ export type CategoryType =
   | 'chocolates'
   | 'spices'
   | 'chips'
+  | 'dates_nuts'
+  | 'honey_oils'
+  | 'tea_coffee'
+  | 'poultry_eggs'
   | (string & {});
 
 export interface CategoryItem {

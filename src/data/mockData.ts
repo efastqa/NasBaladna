@@ -13,6 +13,10 @@ import categoryBiscuitsImg from '../assets/images/category_biscuits_179215591867
 import categoryChocolatesImg from '../assets/images/category_chocolates_1792155919581.jpg';
 import categorySpicesImg from '../assets/images/category_spices_1792155919303.jpg';
 import categoryChipsImg from '../assets/images/category_chips_1792155919614.jpg';
+import categoryDatesNutsImg from '../assets/images/category_dates_nuts_1792234291328.jpg';
+import categoryHoneyOilsImg from '../assets/images/category_honey_oils_1792234292517.jpg';
+import categoryTeaCoffeeImg from '../assets/images/category_tea_coffee_1792234292504.jpg';
+import categoryPoultryEggsImg from '../assets/images/category_poultry_eggs_1792234292136.jpg';
 
 export {
   heroImg,
@@ -28,6 +32,10 @@ export {
   categoryChocolatesImg,
   categorySpicesImg,
   categoryChipsImg,
+  categoryDatesNutsImg,
+  categoryHoneyOilsImg,
+  categoryTeaCoffeeImg,
+  categoryPoultryEggsImg,
 };
 export type { CategoryItem };
 
@@ -49,19 +57,15 @@ export const CATEGORY_IMAGE_PRESETS: CategoryImagePreset[] = [
   { id: 'chocolates', name: 'Gourmet Chocolates', image: categoryChocolatesImg, categoryHint: 'chocolates' },
   { id: 'spices', name: 'Aromatic Farm Spices', image: categorySpicesImg, categoryHint: 'spices' },
   { id: 'chips', name: 'Crunchy Snacks & Chips', image: categoryChipsImg, categoryHint: 'chips' },
+  { id: 'dates_nuts', name: 'Desert Dates & Nuts', image: categoryDatesNutsImg, categoryHint: 'dates_nuts' },
+  { id: 'honey_oils', name: 'Pure Honey & Oils', image: categoryHoneyOilsImg, categoryHint: 'honey_oils' },
+  { id: 'tea_coffee', name: 'Arabic Coffee & Teas', image: categoryTeaCoffeeImg, categoryHint: 'tea_coffee' },
+  { id: 'poultry_eggs', name: 'Farm Poultry & Fresh Eggs', image: categoryPoultryEggsImg, categoryHint: 'poultry_eggs' },
   { id: 'orange', name: 'Sweet Citrus Oranges', image: orangeImg, categoryHint: 'fruits' },
   { id: 'near_expiry', name: 'Near Expiry Deals', image: categoryNearExpiryImg, categoryHint: 'near_expiry' },
 ];
 
 export const CATEGORIES_DATA: CategoryItem[] = [
-  {
-    id: 'near_expiry',
-    name: 'Near Expiry',
-    image: categoryNearExpiryImg,
-    bgColor: 'bg-rose-50/80',
-    borderColor: 'border-rose-200/70',
-    itemCount: 4,
-  },
   {
     id: 'vegetables',
     name: 'Vegetables',
@@ -69,6 +73,7 @@ export const CATEGORIES_DATA: CategoryItem[] = [
     bgColor: 'bg-emerald-50/80',
     borderColor: 'border-emerald-200/60',
     itemCount: 24,
+    badge: 'Farm Fresh',
   },
   {
     id: 'fruits',
@@ -77,6 +82,7 @@ export const CATEGORIES_DATA: CategoryItem[] = [
     bgColor: 'bg-amber-50/80',
     borderColor: 'border-amber-200/60',
     itemCount: 18,
+    badge: 'Sweet & Juicy',
   },
   {
     id: 'dairy',
@@ -85,6 +91,7 @@ export const CATEGORIES_DATA: CategoryItem[] = [
     bgColor: 'bg-sky-50/80',
     borderColor: 'border-sky-200/60',
     itemCount: 14,
+    badge: 'Organic Farm',
   },
   {
     id: 'bakery',
@@ -93,22 +100,43 @@ export const CATEGORIES_DATA: CategoryItem[] = [
     bgColor: 'bg-stone-50/80',
     borderColor: 'border-stone-200/60',
     itemCount: 12,
+    badge: 'Oven Fresh',
   },
   {
-    id: 'herbs',
-    name: 'Herbs & Greens',
-    image: categoryHerbsImg,
-    bgColor: 'bg-teal-50/80',
-    borderColor: 'border-teal-200/60',
-    itemCount: 9,
+    id: 'dates_nuts',
+    name: 'Dates & Nuts',
+    image: categoryDatesNutsImg,
+    bgColor: 'bg-[#FDF4E7]',
+    borderColor: 'border-[#F8DCB5]',
+    itemCount: 8,
+    badge: 'Desert Harvest',
   },
   {
-    id: 'juices',
-    name: 'Fresh Juices',
-    image: categoryJuicesImg,
-    bgColor: 'bg-orange-50/80',
-    borderColor: 'border-orange-200/60',
-    itemCount: 7,
+    id: 'honey_oils',
+    name: 'Honey & Oils',
+    image: categoryHoneyOilsImg,
+    bgColor: 'bg-[#FEFCE8]',
+    borderColor: 'border-[#FEF08A]',
+    itemCount: 6,
+    badge: 'Cold-Pressed',
+  },
+  {
+    id: 'tea_coffee',
+    name: 'Tea & Coffee',
+    image: categoryTeaCoffeeImg,
+    bgColor: 'bg-[#F4F6F0]',
+    borderColor: 'border-[#DDE4D0]',
+    itemCount: 10,
+    badge: 'Single Origin',
+  },
+  {
+    id: 'poultry_eggs',
+    name: 'Poultry & Eggs',
+    image: categoryPoultryEggsImg,
+    bgColor: 'bg-[#FFF8F3]',
+    borderColor: 'border-[#FFE0CC]',
+    itemCount: 5,
+    badge: 'Pasture Raised',
   },
   {
     id: 'biscuits',
@@ -145,6 +173,33 @@ export const CATEGORIES_DATA: CategoryItem[] = [
     borderColor: 'border-yellow-200/60',
     itemCount: 7,
     badge: 'Crispy Snack',
+  },
+  {
+    id: 'herbs',
+    name: 'Herbs & Greens',
+    image: categoryHerbsImg,
+    bgColor: 'bg-teal-50/80',
+    borderColor: 'border-teal-200/60',
+    itemCount: 9,
+    badge: 'Aromatic Pick',
+  },
+  {
+    id: 'juices',
+    name: 'Fresh Juices',
+    image: categoryJuicesImg,
+    bgColor: 'bg-orange-50/80',
+    borderColor: 'border-orange-200/60',
+    itemCount: 7,
+    badge: 'Cold Pressed',
+  },
+  {
+    id: 'near_expiry',
+    name: 'Near Expiry Deals',
+    image: categoryNearExpiryImg,
+    bgColor: 'bg-rose-50/80',
+    borderColor: 'border-rose-200/70',
+    itemCount: 4,
+    badge: 'Save 50%',
   },
 ];
 
