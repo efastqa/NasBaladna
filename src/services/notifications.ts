@@ -75,9 +75,18 @@ export const NotificationService = {
     if (status === 'on_the_way') statusText = '🚚 Out for Delivery with Live GPS';
     if (status === 'delivered') statusText = '🏡 Successfully Delivered to Doorstep';
 
-    const itemsSummary = order.items
-      .map((i) => `• ${i.quantity}x ${i.product.name} (${i.selectedWeight})`)
+    const itemsSummary = (order.items || [])
+      .map((i) => {
+        const itemName = i.product?.name || (i as any).name || (i as any).productName || 'Harvest Item';
+        const itemWeight = i.selectedWeight || (i.product?.baseWeight) || 'Standard';
+        return `• ${i.quantity || 1}x ${itemName} (${itemWeight})`;
+      })
       .join('\n');
+
+    const courierName = order.courier?.name || 'Mohamed Tariq';
+    const courierPhone = order.courier?.phone || '+974 7731 5415';
+    const courierPlate = order.courier?.plateNumber || 'QA-58219';
+    const courierVehicle = order.courier?.vehicle || 'Temperature-Controlled Van';
 
     return `🌿 *NASBALADNA FARM FRESH DELIVERIES*\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
@@ -86,23 +95,26 @@ export const NotificationService = {
       `*Customer:* ${order.customerName}\n` +
       `*Address:* ${order.address}, ${order.district}\n` +
       `*Delivery Window:* ${order.deliverySlot}\n` +
-      `*Payment:* ${order.paymentMethod.toUpperCase()} (${order.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'})\n` +
-      `*Total Amount:* ${order.currency} ${order.total.toFixed(2)}\n\n` +
+      `*Payment:* ${(order.paymentMethod || 'cod').toUpperCase()} (${order.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'})\n` +
+      `*Total Amount:* ${order.currency || 'QAR'} ${(order.total || 0).toFixed(2)}\n\n` +
       `*Harvest Items:*\n${itemsSummary}\n\n` +
-      `*Assigned Courier:* ${order.courier.name} (${order.courier.phone})\n` +
-      `*Vehicle Plate:* ${order.courier.plateNumber} (${order.courier.vehicle})\n\n` +
+      `*Assigned Courier:* ${courierName} (${courierPhone})\n` +
+      `*Vehicle Plate:* ${courierPlate} (${courierVehicle})\n\n` +
       `📍 Track live delivery route on map or reach us anytime at +974 7731 5415.`;
   },
 
   // Generate templated SMS message content (compact standard GSM SMS format)
   buildSmsMessage(order: Order, stage?: OrderStatus): string {
     const status = stage || order.status;
+    const courierName = order.courier?.name || 'Mohamed Tariq';
+    const courierPhone = order.courier?.phone || '+974 7731 5415';
+
     let statusMsg = 'confirmed & being prepared';
     if (status === 'packing') statusMsg = 'packed in cold box';
-    if (status === 'on_the_way') statusMsg = `dispatched with courier ${order.courier.name} (${order.courier.phone})`;
+    if (status === 'on_the_way') statusMsg = `dispatched with courier ${courierName} (${courierPhone})`;
     if (status === 'delivered') statusMsg = 'delivered to your doorstep. Enjoy fresh produce!';
 
-    return `NasBaladna Fresh: Order #${order.orderNumber} is ${statusMsg}. Total: ${order.currency} ${order.total.toFixed(2)}. Address: ${order.address}. Hotline: +974 77315415.`;
+    return `NasBaladna Fresh: Order #${order.orderNumber} is ${statusMsg}. Total: ${order.currency || 'QAR'} ${(order.total || 0).toFixed(2)}. Address: ${order.address}. Hotline: +974 77315415.`;
   },
 
   // Generate direct click-to-chat WhatsApp link

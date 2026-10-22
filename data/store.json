@@ -827,6 +827,15 @@
   ],
   "categories": [
     {
+      "id": "near_expiry",
+      "name": "Near Expiry Deals",
+      "image": "/src/assets/images/category_near_expiry_1791446529518.jpg",
+      "bgColor": "bg-rose-50/80",
+      "borderColor": "border-rose-200/60",
+      "itemCount": 6,
+      "badge": "Save 50%"
+    },
+    {
       "id": "vegetables",
       "name": "Vegetables",
       "image": "/src/assets/images/category_vegetables_box_1791379812745.jpg",
@@ -879,15 +888,6 @@
       "borderColor": "border-orange-200/60",
       "itemCount": 7,
       "badge": "Cold Pressed"
-    },
-    {
-      "id": "near_expiry",
-      "name": "Near Expiry Deals",
-      "image": "/src/assets/images/category_near_expiry_1791446529518.jpg",
-      "bgColor": "bg-rose-50/80",
-      "borderColor": "border-rose-200/60",
-      "itemCount": 6,
-      "badge": "Save 50%"
     },
     {
       "id": "biscuits",
@@ -984,7 +984,49 @@
           "name": "Pani Dodam (Sweet Orange)",
           "selectedWeight": "1kg",
           "pricePerUnit": 14.5,
-          "quantity": 2
+          "quantity": 2,
+          "product": {
+            "id": "nb-pani-dodam",
+            "name": "Pani Dodam (Heritage Sweet Orange)",
+            "scientificName": "Citrus sinensis var. Pani Dodam",
+            "category": "fruits",
+            "brand": "NasBaladna Heritage Groves",
+            "sku": "NB-ORG-001",
+            "basePrice": 6.5,
+            "baseWeight": "500g",
+            "weightOptions": [
+              {
+                "weight": "500g",
+                "multiplier": 1,
+                "label": "Small Pack (~3 pcs)"
+              },
+              {
+                "weight": "1kg",
+                "multiplier": 1.9,
+                "label": "Standard Bag (~6 pcs)"
+              },
+              {
+                "weight": "2kg",
+                "multiplier": 3.6,
+                "label": "Family Box (~12 pcs)"
+              }
+            ],
+            "stock": 6,
+            "image": "/src/assets/images/product_pani_dodam_orange_1791379905.jpg",
+            "description": "Prized for its floral citrus bouquet and low acidity, Pani Dodam is hand-picked at peak ripeness.",
+            "origin": "Local Hydroponic Farm - Zone 4",
+            "farm": "NasBaladna Al Shamal Agricultural Estate",
+            "organic": true,
+            "benefits": [
+              "Immune defense with 85mg bioavailable Vitamin C",
+              "Naturally low acidity gentler on digestion",
+              "Zero synthetic pesticide residue guarantee"
+            ],
+            "storageAdvice": "Store at cool ambient room temperature for up to 4 days, or chill at 4°C to 7°C for up to 14 days.",
+            "wholesalePrice": 52,
+            "wholesaleUnit": "10kg Wooden Crate",
+            "isWholesaleEligible": true
+          }
         }
       ],
       "deliveryNotes": "Please leave at main gate reception",

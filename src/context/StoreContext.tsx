@@ -293,12 +293,52 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
+  const sanitizeOrder = (ord: any): Order => {
+    if (!ord) return ord;
+    return {
+      ...ord,
+      courier: ord.courier || {
+        name: 'Mohamed Tariq',
+        phone: '+974 7731 5415',
+        vehicle: 'Temperature-Controlled Van',
+        plateNumber: 'QA-58219',
+        rating: 4.9,
+      },
+      items: (ord.items || []).map((it: any) => ({
+        ...it,
+        quantity: it.quantity || 1,
+        selectedWeight: it.selectedWeight || 'Standard',
+        product: it.product || {
+          id: it.productId || 'item',
+          name: it.name || it.productName || 'Harvest Item',
+          image: it.image || '/favicon.svg',
+          sku: it.sku || 'NB-ITEM',
+          baseWeight: it.selectedWeight || 'Standard',
+          basePrice: it.pricePerUnit || 10,
+          category: 'vegetables',
+          brand: 'NasBaladna Farm',
+          stock: 50,
+          description: 'Fresh harvest produce',
+          origin: 'Qatar',
+          farm: 'NasBaladna Farms',
+          organic: true,
+          benefits: [],
+          storageAdvice: 'Refrigerate',
+          weightOptions: [{ weight: it.selectedWeight || 'Standard', multiplier: 1 }],
+        },
+      })),
+    };
+  };
+
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [ordersHistory, setOrdersHistory] = useState<Order[]>(() => {
     const saved = safeLocalStorage.getItem('nb_orders_history');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(sanitizeOrder);
+        }
       } catch {
         // fallback
       }
@@ -494,22 +534,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Helper to handle newly discovered orders from SSE, cross-tab, or server poll
   const processIncomingOrder = (incomingOrder: Order) => {
     if (!incomingOrder || !incomingOrder.id) return;
+    const sanitized = sanitizeOrder(incomingOrder);
     if (
-      knownOrderIdsRef.current.has(incomingOrder.id) ||
-      (incomingOrder.orderNumber && knownOrderIdsRef.current.has(incomingOrder.orderNumber))
+      knownOrderIdsRef.current.has(sanitized.id) ||
+      (sanitized.orderNumber && knownOrderIdsRef.current.has(sanitized.orderNumber))
     ) {
       return;
     }
-    knownOrderIdsRef.current.add(incomingOrder.id);
-    if (incomingOrder.orderNumber) {
-      knownOrderIdsRef.current.add(incomingOrder.orderNumber);
+    knownOrderIdsRef.current.add(sanitized.id);
+    if (sanitized.orderNumber) {
+      knownOrderIdsRef.current.add(sanitized.orderNumber);
     }
 
     setOrdersHistory((prev) => {
-      if (prev.some((o) => o.id === incomingOrder.id || o.orderNumber === incomingOrder.orderNumber)) {
+      if (prev.some((o) => o.id === sanitized.id || o.orderNumber === sanitized.orderNumber)) {
         return prev;
       }
-      return [incomingOrder, ...prev];
+      return [sanitized, ...prev];
     });
 
     setUnreadOrdersCount((prev) => {
@@ -518,7 +559,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return next;
     });
 
-    setLatestReceivedOrder(incomingOrder);
+    setLatestReceivedOrder(sanitized);
 
     if (adminAlertSoundEnabled) {
       NotificationService.playOrderChime();
@@ -656,7 +697,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const localOnly = prev.filter(
             (p) => !remoteMap.has(p.id) && !serverOrders.some((so) => so.orderNumber === p.orderNumber)
           );
-          return [...localOnly, ...serverOrders];
+          return [...localOnly, ...serverOrders.map(sanitizeOrder)];
         });
       } catch {
         // quiet background poll

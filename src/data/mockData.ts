@@ -67,6 +67,15 @@ export const CATEGORY_IMAGE_PRESETS: CategoryImagePreset[] = [
 
 export const CATEGORIES_DATA: CategoryItem[] = [
   {
+    id: 'near_expiry',
+    name: 'Near Expiry Deals',
+    image: categoryNearExpiryImg,
+    bgColor: 'bg-rose-50/80',
+    borderColor: 'border-rose-200/70',
+    itemCount: 4,
+    badge: 'Save 50%',
+  },
+  {
     id: 'vegetables',
     name: 'Vegetables',
     image: categoryVegImg,
@@ -191,15 +200,6 @@ export const CATEGORIES_DATA: CategoryItem[] = [
     borderColor: 'border-orange-200/60',
     itemCount: 7,
     badge: 'Cold Pressed',
-  },
-  {
-    id: 'near_expiry',
-    name: 'Near Expiry Deals',
-    image: categoryNearExpiryImg,
-    bgColor: 'bg-rose-50/80',
-    borderColor: 'border-rose-200/70',
-    itemCount: 4,
-    badge: 'Save 50%',
   },
 ];
 

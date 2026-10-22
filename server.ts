@@ -18,6 +18,15 @@ const DB_FILE = path.resolve(DATA_DIR, 'store.json');
 // Initial Default Categories
 const DEFAULT_CATEGORIES = [
   {
+    id: 'near_expiry',
+    name: 'Near Expiry Deals',
+    image: '/src/assets/images/category_near_expiry_1791446529518.jpg',
+    bgColor: 'bg-rose-50/80',
+    borderColor: 'border-rose-200/60',
+    itemCount: 6,
+    badge: 'Save 50%',
+  },
+  {
     id: 'vegetables',
     name: 'Vegetables',
     image: '/src/assets/images/category_vegetables_box_1791379812745.jpg',
@@ -142,15 +151,6 @@ const DEFAULT_CATEGORIES = [
     borderColor: 'border-[#FFE0CC]',
     itemCount: 5,
     badge: 'Pasture Raised',
-  },
-  {
-    id: 'near_expiry',
-    name: 'Near Expiry Deals',
-    image: '/src/assets/images/category_near_expiry_1791446529518.jpg',
-    bgColor: 'bg-rose-50/80',
-    borderColor: 'border-rose-200/60',
-    itemCount: 6,
-    badge: 'Save 50%',
   },
 ];
 

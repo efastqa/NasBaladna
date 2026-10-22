@@ -192,9 +192,9 @@ export const AdminPortal: React.FC = () => {
       `*Address:* ${order.address}\n` +
       `*Delivery Slot:* ${order.deliverySlot}\n` +
       `*Payment:* ${order.paymentMethod.toUpperCase()} (${order.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'})\n` +
-      `*Total Amount:* ${order.currency} ${order.total.toFixed(2)}\n\n` +
+      `*Total Amount:* ${order.currency || 'QAR'} ${(order.total || 0).toFixed(2)}\n\n` +
       `*Items Ordered:*\n` +
-      order.items.map((i) => `• ${i.quantity}x ${i.product.name} (${i.selectedWeight})`).join('\n') +
+      (order.items || []).map((i) => `• ${i.quantity || 1}x ${i.product?.name || (i as any).name || 'Harvest Item'} (${i.selectedWeight || 'Standard'})`).join('\n') +
       `\n\nDispatching with Driver: ${deliveryDriver.name} (${deliveryDriver.phone})`;
 
     const targetUrl = NotificationService.getWhatsAppUrl(ownerPhone, text);
@@ -228,8 +228,8 @@ export const AdminPortal: React.FC = () => {
     const rows = ordersHistory.map((ord, idx) => {
       const coords = ord.coordinates || getDistrictCoordinates(ord.district);
       const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`;
-      const itemsList = ord.items
-        .map((i) => `${i.product.name} (${i.selectedWeight}) x${i.quantity}`)
+      const itemsList = (ord.items || [])
+        .map((i) => `${i.product?.name || (i as any).name || 'Item'} (${i.selectedWeight || 'Standard'}) x${i.quantity || 1}`)
         .join('; ');
 
       const serviceLevel = ord.isExpress || ord.serviceType === 'express'
@@ -3989,7 +3989,7 @@ export const AdminPortal: React.FC = () => {
 
                           <div className="text-slate-300 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
                             <strong className="text-slate-400">Harvest Basket:</strong>{' '}
-                            {ord.items.map((i) => `${i.product.name} (${i.selectedWeight}) x${i.quantity}`).join(', ')}
+                            {(ord.items || []).map((i) => `${i.product?.name || (i as any).name || 'Harvest Item'} (${i.selectedWeight || 'Standard'}) x${i.quantity || 1}`).join(', ')}
                           </div>
                         </div>
 

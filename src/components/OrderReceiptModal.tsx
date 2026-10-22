@@ -95,17 +95,17 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
 
   // 100% Reliable Download Invoice as Offline HTML document
   const handleDownloadHtml = () => {
-    const itemsListHtml = order.items
+    const itemsListHtml = (order.items || [])
       .map(
         (it) => `
         <tr>
           <td style="padding: 10px 8px; border-bottom: 1px solid #f1f5f9;">
-            <strong>${it.product.name}</strong><br/>
-            <span style="font-size: 11px; color: #64748b;">SKU: ${it.product.sku}</span>
+            <strong>${it.product?.name || (it as any).name || 'Item'}</strong><br/>
+            <span style="font-size: 11px; color: #64748b;">SKU: ${it.product?.sku || (it as any).sku || 'NB-ITEM'}</span>
           </td>
-          <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #f1f5f9;">${it.selectedWeight}</td>
-          <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #f1f5f9; font-weight: bold;">x${it.quantity}</td>
-          <td style="padding: 10px 8px; text-align: right; border-bottom: 1px solid #f1f5f9; font-weight: bold;">${formatPrice(it.pricePerUnit * it.quantity)}</td>
+          <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #f1f5f9;">${it.selectedWeight || 'Standard'}</td>
+          <td style="padding: 10px 8px; text-align: center; border-bottom: 1px solid #f1f5f9; font-weight: bold;">x${it.quantity || 1}</td>
+          <td style="padding: 10px 8px; text-align: right; border-bottom: 1px solid #f1f5f9; font-weight: bold;">${formatPrice((it.pricePerUnit || 0) * (it.quantity || 1))}</td>
         </tr>
       `
       )
@@ -224,8 +224,8 @@ export const OrderReceiptModal: React.FC<OrderReceiptModalProps> = ({
 
   // Copy plain text receipt to clipboard
   const handleCopyReceipt = () => {
-    const itemsText = order.items
-      .map((it) => `• ${it.product.name} (${it.selectedWeight}) x${it.quantity} = ${formatPrice(it.pricePerUnit * it.quantity)}`)
+    const itemsText = (order.items || [])
+      .map((it) => `• ${it.product?.name || (it as any).name || 'Item'} (${it.selectedWeight || 'Standard'}) x${it.quantity || 1} = ${formatPrice((it.pricePerUnit || 0) * (it.quantity || 1))}`)
       .join('\n');
 
     const text = `🌿 NASBALADNA FRESH PRODUCE - ORDER RECEIPT
@@ -373,23 +373,27 @@ Customer Support: +974 7731 5415`;
             </div>
 
             <div className="divide-y divide-slate-100">
-              {order.items.map((it, idx) => (
-                <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-                  <div className="flex-1 pr-2">
-                    <span className="font-bold text-slate-900 block">{it.product.name}</span>
-                    <span className="text-[10px] text-slate-500 font-mono">SKU: {it.product.sku}</span>
+              {(order.items || []).map((it, idx) => {
+                const itemName = it.product?.name || (it as any).name || 'Harvest Item';
+                const itemSku = it.product?.sku || (it as any).sku || 'NB-ITEM';
+                return (
+                  <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
+                    <div className="flex-1 pr-2">
+                      <span className="font-bold text-slate-900 block">{itemName}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">SKU: {itemSku}</span>
+                    </div>
+                    <div className="w-16 text-center text-slate-600 text-[11px]">
+                      {it.selectedWeight || 'Standard'}
+                    </div>
+                    <div className="w-12 text-center font-mono font-medium text-slate-900">
+                      x{it.quantity || 1}
+                    </div>
+                    <div className="w-16 text-right font-mono font-bold text-slate-900">
+                      {formatPrice((it.pricePerUnit || 0) * (it.quantity || 1))}
+                    </div>
                   </div>
-                  <div className="w-16 text-center text-slate-600 text-[11px]">
-                    {it.selectedWeight}
-                  </div>
-                  <div className="w-12 text-center font-mono font-medium text-slate-900">
-                    x{it.quantity}
-                  </div>
-                  <div className="w-16 text-right font-mono font-bold text-slate-900">
-                    {formatPrice(it.pricePerUnit * it.quantity)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

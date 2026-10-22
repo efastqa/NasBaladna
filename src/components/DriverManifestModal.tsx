@@ -103,8 +103,8 @@ export const DriverManifestModal: React.FC<DriverManifestModalProps> = ({
     const rows = filteredOrders.map((ord, idx) => {
       const coords = ord.coordinates || getDistrictCoordinates(ord.district);
       const navUrl = getGoogleMapsDirUrl(ord);
-      const itemsList = ord.items
-        .map((i) => `${i.product.name} (${i.selectedWeight}) x${i.quantity}`)
+      const itemsList = (ord.items || [])
+        .map((i) => `${i.product?.name || (i as any).name || 'Item'} (${i.selectedWeight || 'Standard'}) x${i.quantity || 1}`)
         .join('; ');
 
       const serviceLevel = ord.isExpress || ord.serviceType === 'express'
@@ -507,7 +507,7 @@ export const DriverManifestModal: React.FC<DriverManifestModalProps> = ({
                         {/* Order Basket Summary */}
                         <div className="text-[11px] text-slate-400 pt-1">
                           <strong className="text-slate-300">Produce: </strong>
-                          {ord.items.map((i) => `${i.product.name} x${i.quantity}`).join(', ')}
+                          {(ord.items || []).map((i) => `${i.product?.name || (i as any).name || 'Item'} x${i.quantity || 1}`).join(', ')}
                         </div>
                       </div>
                     </div>

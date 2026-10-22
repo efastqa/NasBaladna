@@ -430,27 +430,35 @@ export const LiveOrderTracking: React.FC = () => {
                 </div>
 
                 <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
-                  {order.items.map((it, idx) => (
-                    <div key={idx} className="p-3 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={it.product.image}
-                          alt={it.product.name}
-                          className="w-10 h-10 rounded-lg object-contain bg-slate-50 p-1"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div>
-                          <span className="font-bold text-slate-900 block">{it.product.name}</span>
-                          <span className="text-slate-500 text-[11px]">
-                            {it.selectedWeight} · Qty: {it.quantity}
-                          </span>
+                  {(order.items || []).map((it, idx) => {
+                    const itemName = it.product?.name || (it as any).name || (it as any).productName || 'Harvest Item';
+                    const itemImage = it.product?.image || (it as any).image || '/favicon.svg';
+                    const itemWeight = it.selectedWeight || it.product?.baseWeight || 'Standard';
+                    return (
+                      <div key={idx} className="p-3 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={itemImage}
+                            alt={itemName}
+                            className="w-10 h-10 rounded-lg object-contain bg-slate-50 p-1"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/favicon.svg';
+                            }}
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 block">{itemName}</span>
+                            <span className="text-slate-500 text-[11px]">
+                              {itemWeight} · Qty: {it.quantity || 1}
+                            </span>
+                          </div>
                         </div>
+                        <span className="font-mono font-bold text-slate-800">
+                          {formatPrice(it.pricePerUnit * (it.quantity || 1))}
+                        </span>
                       </div>
-                      <span className="font-mono font-bold text-slate-800">
-                        {formatPrice(it.pricePerUnit * it.quantity)}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                     <div className="p-3 bg-slate-50 flex items-center justify-between text-xs font-bold text-slate-900">
                     <span>Total Paid</span>
