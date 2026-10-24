@@ -1140,6 +1140,26 @@ export const AdminPortal: React.FC = () => {
                 </>
               )}
             </button>
+
+            {/* Quick Password Reset Helper */}
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await resetAdminPassword();
+                  if (ok) {
+                    setUsername('admin');
+                    setPassword('admin');
+                    setLoginError('');
+                    showToast('Password reset to default "admin". Ready to log in!');
+                  }
+                }}
+                className="text-[11px] text-emerald-400 hover:text-emerald-300 hover:underline transition-colors cursor-pointer inline-flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Forgot password? Reset to default "admin"</span>
+              </button>
+            </div>
           </form>
 
           {/* Security note */}

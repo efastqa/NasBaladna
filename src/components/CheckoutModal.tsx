@@ -40,8 +40,6 @@ export const CheckoutModal: React.FC = () => {
     currency,
   } = useStore();
 
-  if (!isCheckoutOpen) return null;
-
   const [customerName, setCustomerName] = useState('Sara Al-Kuwari');
   const [phone, setPhone] = useState('+974 5582 3419');
   const [district, setDistrict] = useState(QATAR_DISTRICTS[0]);
@@ -170,6 +168,8 @@ export const CheckoutModal: React.FC = () => {
       setShowOtpModal(false);
     }, 1400);
   };
+
+  if (!isCheckoutOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex justify-center items-start sm:items-center p-0 sm:p-4 animate-in fade-in duration-200">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
 import {
   X,
@@ -28,18 +28,26 @@ export const ProductDetailModal: React.FC = () => {
     ownerWhatsAppUrl,
   } = useStore();
 
-  if (!selectedProduct) return null;
-
-  const wholesaleUnit = selectedProduct.wholesaleUnit || '5kg Crate';
-  const wholesalePriceVal = selectedProduct.wholesalePrice || selectedProduct.basePrice * 4.5;
-
-  const [selectedWeight, setSelectedWeight] = useState<string>(
-    selectedProduct.weightOptions[0]?.weight || selectedProduct.baseWeight
-  );
+  const [selectedWeight, setSelectedWeight] = useState<string>('500g');
   const [quantity, setQuantity] = useState<number>(1);
   const [activeThumbIndex, setActiveThumbIndex] = useState<number>(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showHelpBox, setShowHelpBox] = useState(false);
+
+  useEffect(() => {
+    if (selectedProduct) {
+      setSelectedWeight(
+        selectedProduct.weightOptions[0]?.weight || selectedProduct.baseWeight || '500g'
+      );
+      setQuantity(1);
+      setActiveThumbIndex(0);
+    }
+  }, [selectedProduct]);
+
+  if (!selectedProduct) return null;
+
+  const wholesaleUnit = selectedProduct.wholesaleUnit || '5kg Crate';
+  const wholesalePriceVal = selectedProduct.wholesalePrice || selectedProduct.basePrice * 4.5;
 
   // Calculate current price based on weight
   const isWholesaleSelected = selectedWeight === wholesaleUnit;

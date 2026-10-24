@@ -885,10 +885,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetAdminPassword = async (): Promise<boolean> => {
-    if (!isAdminAuthenticated) {
-      showToast('Unauthorized: Admin access required');
-      return false;
-    }
     try {
       await api.resetAdminPassword();
       await firestoreService.syncAdminPassword('admin');
