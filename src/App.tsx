@@ -30,6 +30,7 @@ import {
   QrCode,
   Smartphone,
   Download,
+  X,
 } from 'lucide-react';
 
 const MainStoreContent: React.FC = () => {
@@ -63,7 +64,9 @@ const MainStoreContent: React.FC = () => {
   // Filter products by selected category and search query
   const filteredProducts = products.filter((p) => {
     const matchesCategory =
-      selectedCategory === 'all' || p.category === selectedCategory;
+      selectedCategory === 'all' ||
+      p.category === selectedCategory ||
+      (selectedCategory === 'near_expiry' && (p.category === 'near_expiry' || p.isNearExpiry === true));
     const matchesSearch =
       searchQuery.trim() === '' ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -144,6 +147,60 @@ const MainStoreContent: React.FC = () => {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="pt-2"
         >
+          {/* Active Category Confirmation Banner when category is selected */}
+          {selectedCategory !== 'all' && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-5 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border flex items-center justify-between gap-3 shadow-xs ${
+                selectedCategory === 'near_expiry'
+                  ? 'bg-gradient-to-r from-rose-50 via-rose-50/60 to-amber-50/40 border-rose-200'
+                  : 'bg-white border-emerald-200/80'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {activeCategoryObj?.image ? (
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white border border-slate-100 p-1 shrink-0 flex items-center justify-center shadow-2xs overflow-hidden">
+                    <img
+                      src={activeCategoryObj.image}
+                      alt={activeCategoryObj.name}
+                      className="w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                ) : null}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 font-['Outfit']">
+                      {activeCategoryObj?.name || categoryTitle}
+                    </span>
+                    {activeCategoryObj?.badge && (
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-600 text-white tracking-wide">
+                        {activeCategoryObj.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'varieties'} available in this category
+                  </p>
+                </div>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setSearchQuery('');
+                }}
+                className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200/60"
+              >
+                <span>View All</span>
+                <X className="w-3.5 h-3.5" />
+              </motion.button>
+            </motion.div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 font-['Outfit']">
@@ -161,7 +218,10 @@ const MainStoreContent: React.FC = () => {
               <motion.button
                 whileHover={{ y: -2, scale: 1.04 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedCategory('all')}
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setSearchQuery('');
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   selectedCategory === 'all'
                     ? 'bg-emerald-800 text-white shadow-xs'
@@ -178,7 +238,10 @@ const MainStoreContent: React.FC = () => {
                     key={cat.id}
                     whileHover={{ y: -2, scale: 1.04 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedCategory(cat.id)}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      setSearchQuery('');
+                    }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       isSelected
                         ? isNearExpiry
@@ -199,17 +262,22 @@ const MainStoreContent: React.FC = () => {
           {/* Product Cards Grid */}
           {filteredProducts.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 p-8 space-y-3">
-              <p className="text-slate-500 text-sm">
-                No produce matches "{searchQuery}".
+              <p className="text-slate-600 font-medium text-sm">
+                {searchQuery
+                  ? `No produce matches "${searchQuery}".`
+                  : `No produce currently available in ${activeCategoryObj?.name || 'this category'}.`}
+              </p>
+              <p className="text-xs text-slate-400">
+                Browse our daily harvest across all categories or check back soon as morning stock arrives.
               </p>
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('all');
                 }}
-                className="px-4 py-2 bg-emerald-700 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors shadow-xs"
               >
-                Reset Filters
+                Browse All Produce
               </button>
             </div>
           ) : (

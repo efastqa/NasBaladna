@@ -25,6 +25,7 @@ export const MenuDrawer: React.FC = () => {
     setIsMenuDrawerOpen,
     categories,
     setSelectedCategory,
+    setSearchQuery,
     setIsInventoryModalOpen,
     setIsTrackingOpen,
     setIsWhatsAppOpen,
@@ -41,7 +42,17 @@ export const MenuDrawer: React.FC = () => {
 
   const handleCategorySelect = (id: any) => {
     setSelectedCategory(id);
+    setSearchQuery('');
     setIsMenuDrawerOpen(false);
+
+    setTimeout(() => {
+      const elem = document.getElementById('produce');
+      if (elem) {
+        const yOffset = -85;
+        const y = elem.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      }
+    }, 150);
   };
 
   return (

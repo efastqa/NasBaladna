@@ -89,14 +89,30 @@ export const firestoreService = {
         (snapshot) => {
           const list: Order[] = [];
           snapshot.forEach((d) => {
-            const data = d.data() as Order;
-            list.push(data);
+            const data = d.data() as any;
+            if (data && typeof data === 'object') {
+              const orderId = String(data.id || d.id || '');
+              list.push({
+                ...data,
+                id: orderId,
+              } as Order);
+            }
           });
 
-          // Sort latest created orders first
+          // Sort latest created orders first with null-safe timestamp parsing
           list.sort((a, b) => {
-            const timeA = (a as any).createdTimestamp || parseInt(a.id.replace(/\D/g, ''), 10) || 0;
-            const timeB = (b as any).createdTimestamp || parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+            const idA = String(a?.id || (a as any)?.orderNumber || '');
+            const idB = String(b?.id || (b as any)?.orderNumber || '');
+            const timeA =
+              (a as any)?.createdTimestamp ||
+              (a?.createdAt ? new Date(a.createdAt).getTime() : 0) ||
+              parseInt(idA.replace(/\D/g, ''), 10) ||
+              0;
+            const timeB =
+              (b as any)?.createdTimestamp ||
+              (b?.createdAt ? new Date(b.createdAt).getTime() : 0) ||
+              parseInt(idB.replace(/\D/g, ''), 10) ||
+              0;
             return timeB - timeA;
           });
 
@@ -104,16 +120,20 @@ export const firestoreService = {
           if (!isInitialLoad && onNewOrderReceived) {
             snapshot.docChanges().forEach((change) => {
               if (change.type === 'added') {
-                const addedOrder = change.doc.data() as Order;
-                onNewOrderReceived(addedOrder);
+                const addedData = change.doc.data() as any;
+                if (addedData && typeof addedData === 'object') {
+                  const addedOrder = {
+                    ...addedData,
+                    id: String(addedData.id || change.doc.id || ''),
+                  } as Order;
+                  onNewOrderReceived(addedOrder);
+                }
               }
             });
           }
           isInitialLoad = false;
 
-          if (list.length > 0) {
-            onOrdersSync(list);
-          }
+          onOrdersSync(list);
         },
         (error) => {
           console.warn('Firestore orders live subscription error:', error);
@@ -130,10 +150,28 @@ export const firestoreService = {
     try {
       const snapshot = await getDocs(collection(db, 'orders'));
       const list: Order[] = [];
-      snapshot.forEach((d) => list.push(d.data() as Order));
+      snapshot.forEach((d) => {
+        const data = d.data() as any;
+        if (data && typeof data === 'object') {
+          list.push({
+            ...data,
+            id: String(data.id || d.id || ''),
+          } as Order);
+        }
+      });
       list.sort((a, b) => {
-        const timeA = (a as any).createdTimestamp || parseInt(a.id.replace(/\D/g, ''), 10) || 0;
-        const timeB = (b as any).createdTimestamp || parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+        const idA = String(a?.id || (a as any)?.orderNumber || '');
+        const idB = String(b?.id || (b as any)?.orderNumber || '');
+        const timeA =
+          (a as any)?.createdTimestamp ||
+          (a?.createdAt ? new Date(a.createdAt).getTime() : 0) ||
+          parseInt(idA.replace(/\D/g, ''), 10) ||
+          0;
+        const timeB =
+          (b as any)?.createdTimestamp ||
+          (b?.createdAt ? new Date(b.createdAt).getTime() : 0) ||
+          parseInt(idB.replace(/\D/g, ''), 10) ||
+          0;
         return timeB - timeA;
       });
       return list;

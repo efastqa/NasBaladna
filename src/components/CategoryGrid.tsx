@@ -43,8 +43,23 @@ const CategoryCardImage: React.FC<{
 };
 
 export const CategoryGrid: React.FC = () => {
-  const { selectedCategory, setSelectedCategory, categories } = useStore();
+  const { selectedCategory, setSelectedCategory, categories, setSearchQuery } = useStore();
   const [hoveredCatId, setHoveredCatId] = useState<string | null>(null);
+
+  const handleSelectCategory = (catId: CategoryType) => {
+    setSelectedCategory(catId);
+    setSearchQuery('');
+
+    // Smooth scroll down to the produce section so the customer immediately sees the opened category items
+    setTimeout(() => {
+      const elem = document.getElementById('produce');
+      if (elem) {
+        const yOffset = -85; // accounts for the sticky header
+        const y = elem.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      }
+    }, 50);
+  };
 
   const getFallbackIcon = (id: CategoryType) => {
     switch (id) {
@@ -132,7 +147,7 @@ export const CategoryGrid: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
-          onClick={() => setSelectedCategory('all')}
+          onClick={() => handleSelectCategory('all')}
           className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer border ${
             selectedCategory === 'all'
               ? 'bg-[#E8F8F1] text-emerald-800 border-emerald-200/70 hover:bg-emerald-100'
@@ -169,7 +184,7 @@ export const CategoryGrid: React.FC = () => {
               whileTap={{ scale: 0.97 }}
               onHoverStart={() => setHoveredCatId(cat.id)}
               onHoverEnd={() => setHoveredCatId(null)}
-              onClick={() => setSelectedCategory(isSelected ? 'all' : cat.id)}
+              onClick={() => handleSelectCategory(cat.id)}
               className={`group relative flex flex-col text-left rounded-3xl p-3 sm:p-3.5 transition-all duration-200 border cursor-pointer select-none ${
                 cat.bgColor || 'bg-slate-50/90'
               } ${
