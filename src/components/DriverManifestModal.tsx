@@ -504,10 +504,27 @@ export const DriverManifestModal: React.FC<DriverManifestModalProps> = ({
                           )}
                         </div>
 
-                        {/* Order Basket Summary */}
-                        <div className="text-[11px] text-slate-400 pt-1">
-                          <strong className="text-slate-300">Produce: </strong>
-                          {(ord.items || []).map((i) => `${i.product?.name || (i as any).name || 'Item'} x${i.quantity || 1}`).join(', ')}
+                        {/* Order Basket Summary with Prominent Quantity Chips */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                          <strong className="text-slate-300 text-[11px]">Items ({ord.items?.length || 0}): </strong>
+                          {(ord.items || []).map((i, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-white shadow-xs"
+                            >
+                              <span
+                                className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-black ${
+                                  (i.quantity || 1) > 1 ? 'bg-amber-400 text-slate-950' : 'bg-emerald-500 text-slate-950'
+                                }`}
+                              >
+                                x{i.quantity || 1}
+                              </span>
+                              <span className="font-semibold">{i.product?.name || (i as any).name || 'Item'}</span>
+                              <span className="text-[10px] text-emerald-300 font-medium">
+                                ({i.selectedWeight || 'Standard'})
+                              </span>
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>

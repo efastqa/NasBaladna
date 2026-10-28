@@ -58,10 +58,17 @@ import {
   Share2,
   BarChart3,
   TrendingUp,
+  ClipboardList,
+  CheckSquare,
+  Square,
+  LayoutGrid,
+  List,
+  ChefHat,
 } from 'lucide-react';
 import { CategoryType, Product, OrderStatus, Order } from '../types';
 import { NotificationService } from '../services/notifications';
 import { OrderReceiptModal } from './OrderReceiptModal';
+import { ShopPickSlipModal, getDepartmentInfo } from './ShopPickSlipModal';
 import { ScanToOrderModal } from './ScanToOrderModal';
 import { DriverManifestModal } from './DriverManifestModal';
 import { RevenueAnalytics } from './RevenueAnalytics';
@@ -172,6 +179,63 @@ export const AdminPortal: React.FC = () => {
   const [desktopNotifGranted, setDesktopNotifGranted] = useState<boolean>(() => {
     return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
   });
+
+  // Dedicated Shop Kitchen & Store Pick Slip Modal State
+  const [selectedPickSlipOrder, setSelectedPickSlipOrder] = useState<Order | null>(null);
+
+  // Shop picking view mode: 'cards' (visual product cards with large QTY) | 'table' (packing checklist) | 'compact'
+  const [shopPickViewMode, setShopPickViewMode] = useState<'cards' | 'table' | 'compact'>('cards');
+
+  // Interactive Shop Picked Tracker per order: { [orderId]: { [itemKey]: boolean } }
+  const [orderPickedItemsMap, setOrderPickedItemsMap] = useState<Record<string, Record<string, boolean>>>(() => {
+    try {
+      const saved = localStorage.getItem('nb_admin_picked_items');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleOrderItemPicked = (orderId: string, itemKey: string) => {
+    setOrderPickedItemsMap((prev) => {
+      const orderItems = prev[orderId] || {};
+      const nextVal = !orderItems[itemKey];
+      const updated = {
+        ...prev,
+        [orderId]: {
+          ...orderItems,
+          [itemKey]: nextVal,
+        },
+      };
+      try {
+        localStorage.setItem('nb_admin_picked_items', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const markAllOrderItemsPicked = (order: Order) => {
+    setOrderPickedItemsMap((prev) => {
+      const allPicked: Record<string, boolean> = {};
+      (order.items || []).forEach((it, idx) => {
+        const key = `${it.productId || it.product?.id || idx}-${it.selectedWeight || 'std'}`;
+        allPicked[key] = true;
+      });
+      const updated = {
+        ...prev,
+        [order.id]: allPicked,
+      };
+      try {
+        localStorage.setItem('nb_admin_picked_items', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+    showToast(`All ${order.items?.length || 0} items marked as gathered for Order #${order.orderNumber}!`);
+  };
 
   const handleEnableDesktopNotifications = async () => {
     const granted = await NotificationService.requestNotificationPermission();
@@ -1492,6 +1556,35 @@ export const AdminPortal: React.FC = () => {
                         <span className="text-slate-200">{latestReceivedOrder.deliverySlot}</span> · Method:{' '}
                         <span className="uppercase text-amber-300 font-mono">{latestReceivedOrder.paymentMethod}</span>
                       </p>
+
+                      {/* Fast Visual Item & Quantity Chips */}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Items to Pick:
+                        </span>
+                        {latestReceivedOrder.items.map((it, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-xs text-white shadow-xs"
+                          >
+                            <span
+                              className={`px-1.5 py-0.2 rounded font-black text-[10px] font-mono shadow-xs ${
+                                (it.quantity || 1) > 1
+                                  ? 'bg-amber-400 text-slate-950'
+                                  : 'bg-emerald-500 text-slate-950'
+                              }`}
+                            >
+                              x{it.quantity || 1}
+                            </span>
+                            <span className="font-semibold truncate max-w-[140px]">
+                              {it.product?.name || (it as any).name}
+                            </span>
+                            <span className="text-[10px] text-emerald-300 font-medium">
+                              ({it.selectedWeight || 'Standard'})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-xs text-slate-300 mt-1">
@@ -1513,6 +1606,17 @@ export const AdminPortal: React.FC = () => {
                   <Eye className="w-4 h-4" />
                   <span>View Orders</span>
                 </button>
+
+                {latestReceivedOrder && (
+                  <button
+                    onClick={() => setSelectedPickSlipOrder(latestReceivedOrder)}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-xs rounded-xl border border-emerald-600/60 shadow-md transition-colors flex items-center gap-1.5"
+                    title="Open Instant Shop Kitchen & Packing Pick Slip"
+                  >
+                    <ChefHat className="w-4 h-4 text-emerald-400" />
+                    <span>Pick Slip</span>
+                  </button>
+                )}
 
                 {latestReceivedOrder && (
                   <button
@@ -4159,10 +4263,17 @@ export const AdminPortal: React.FC = () => {
                     const isExpress = ord.isExpress || ord.serviceType === 'express';
                     const isEco = ord.serviceType === 'eco_green';
 
+                    const totalOrderUnits = (ord.items || []).reduce((sum, it) => sum + (it.quantity || 1), 0);
+                    const pickedForThisOrderCount = (ord.items || []).filter((it, itemIdx) => {
+                      const itemKey = `${it.productId || it.product?.id || itemIdx}-${it.selectedWeight || 'std'}`;
+                      return !!orderPickedItemsMap[ord.id]?.[itemKey];
+                    }).length;
+                    const isOrderFullyPicked = (ord.items || []).length > 0 && pickedForThisOrderCount === ord.items.length;
+
                     return (
                       <div
                         key={ord.id}
-                        className={`p-4 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs transition-all ${
+                        className={`p-4 sm:p-5 rounded-2xl border flex flex-col gap-3.5 text-xs transition-all ${
                           isNewOrder
                             ? 'bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/80 ring-2 ring-rose-500/20 shadow-lg'
                             : isExpress
@@ -4170,106 +4281,102 @@ export const AdminPortal: React.FC = () => {
                             : 'bg-slate-900 border-slate-800'
                         }`}
                       >
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-white text-sm">#{ord.orderNumber}</span>
+                        {/* TOP BAR: ORDER METADATA, CUSTOMER DETAILS & ACTION BUTTONS */}
+                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-slate-800/80">
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-white text-base font-mono">#{ord.orderNumber}</span>
 
-                            {isNewOrder && (
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-600 text-white animate-pulse flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                                <span>NEW ORDER</span>
+                              {isNewOrder && (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-600 text-white animate-pulse flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                                  <span>NEW ORDER</span>
+                                </span>
+                              )}
+
+                              {isExpress && (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                                  <Zap className="w-3 h-3 fill-current" />
+                                  <span>EXPRESS 60-MIN</span>
+                                </span>
+                              )}
+
+                              {isEco && (
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                                  <Leaf className="w-3 h-3" />
+                                  <span>ECO BATCH</span>
+                                </span>
+                              )}
+
+                              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
+                                {ord.status.replace('_', ' ')}
                               </span>
-                            )}
+                              <span className="text-slate-400">· {ord.createdAt}</span>
 
-                            {isExpress && (
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                                <Zap className="w-3 h-3 fill-current" />
-                                <span>EXPRESS 60-MIN</span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                                {ord.paymentMethod.toUpperCase()} · {ord.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'}
                               </span>
-                            )}
+                            </div>
 
-                            {isEco && (
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-                                <Leaf className="w-3 h-3" />
-                                <span>ECO BATCH</span>
+                            <div className="text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
+                              <span>
+                                <strong>Customer:</strong> {ord.customerName}
                               </span>
-                            )}
+                              <a
+                                href={`tel:${ord.phone}`}
+                                className="text-emerald-400 hover:underline font-mono"
+                              >
+                                {ord.phone}
+                              </a>
+                              <span className="text-slate-500">·</span>
+                              <span>
+                                <strong>Area:</strong> {ord.district}
+                              </span>
+                            </div>
 
-                            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
-                              {ord.status.replace('_', ' ')}
-                            </span>
-                            <span className="text-slate-400">· {ord.createdAt}</span>
+                            <div className="text-slate-400">
+                              <strong>Address:</strong> {ord.address} · <strong>Slot:</strong> {ord.deliverySlot}
+                              {ord.bluePlateInfo && (
+                                <span className="block text-sky-400 font-mono text-[11px] mt-0.5">
+                                  Qatar Blue Plate: Zone {ord.bluePlateInfo.zone} · Street {ord.bluePlateInfo.street} · Building {ord.bluePlateInfo.building}
+                                </span>
+                              )}
+                            </div>
 
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                              {ord.paymentMethod.toUpperCase()} · {ord.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'}
-                            </span>
+                            {/* Dropoff Preferences & Notes */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
+                              {ord.dropoffPreference === 'doorstep' && (
+                                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
+                                  🚪 Leave at Doorstep
+                                </span>
+                              )}
+                              {ord.dropoffPreference === 'security' && (
+                                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
+                                  🏢 Leave with Security
+                                </span>
+                              )}
+                              {ord.doorbellPreference === 'silent' && (
+                                <span className="px-2 py-0.5 rounded bg-rose-950/70 text-rose-300 border border-rose-800">
+                                  🔕 Silent Drop (No Bell)
+                                </span>
+                              )}
+                              {ord.deliveryNotes && (
+                                <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800 truncate max-w-sm">
+                                  📝 {ord.deliveryNotes}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span>
-                              <strong>Customer:</strong> {ord.customerName}
-                            </span>
-                            <a
-                              href={`tel:${ord.phone}`}
-                              className="text-emerald-400 hover:underline font-mono"
-                            >
-                              {ord.phone}
-                            </a>
-                            <span className="text-slate-500">·</span>
-                            <span>
-                              <strong>Area:</strong> {ord.district}
-                            </span>
-                          </div>
-
-                          <div className="text-slate-400">
-                            <strong>Address:</strong> {ord.address} · <strong>Slot:</strong> {ord.deliverySlot}
-                            {ord.bluePlateInfo && (
-                              <span className="block text-sky-400 font-mono text-[11px] mt-0.5">
-                                Qatar Blue Plate: Zone {ord.bluePlateInfo.zone} · Street {ord.bluePlateInfo.street} · Building {ord.bluePlateInfo.building}
+                          {/* ACTION BUTTONS & TOTAL AMOUNT */}
+                          <div className="flex flex-col items-start lg:items-end gap-2.5 shrink-0 w-full lg:w-auto">
+                            <div className="flex items-center justify-between w-full lg:w-auto gap-4">
+                              <span className="text-slate-400 text-xs">Order Total:</span>
+                              <span className="text-lg font-bold font-mono text-emerald-400">
+                                {formatPrice(ord.total)}
                               </span>
-                            )}
-                          </div>
+                            </div>
 
-                          {/* Dropoff Preferences & Notes */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
-                            {ord.dropoffPreference === 'doorstep' && (
-                              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
-                                🚪 Leave at Doorstep
-                              </span>
-                            )}
-                            {ord.dropoffPreference === 'security' && (
-                              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
-                                🏢 Leave with Security
-                              </span>
-                            )}
-                            {ord.doorbellPreference === 'silent' && (
-                              <span className="px-2 py-0.5 rounded bg-rose-950/70 text-rose-300 border border-rose-800">
-                                🔕 Silent Drop (No Bell)
-                              </span>
-                            )}
-                            {ord.deliveryNotes && (
-                              <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800 truncate max-w-sm">
-                                📝 {ord.deliveryNotes}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="text-slate-300 bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
-                            <strong className="text-slate-400">Harvest Basket:</strong>{' '}
-                            {(ord.items || []).map((i) => `${i.product?.name || (i as any).name || 'Harvest Item'} (${i.selectedWeight || 'Standard'}) x${i.quantity || 1}`).join(', ')}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 w-full md:w-auto justify-between md:justify-end">
-                          <div className="text-left md:text-right">
-                            <span className="text-slate-400 block text-[10px]">Total Amount</span>
-                            <span className="text-base font-bold font-mono text-emerald-400">
-                              {formatPrice(ord.total)}
-                            </span>
-                          </div>
-
-                          {/* Action Buttons: Status changer + Alerts + Receipt */}
-                          <div className="flex flex-col items-start md:items-end gap-2 w-full sm:w-auto">
                             {/* Status changer buttons */}
                             <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
                               {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map(
@@ -4290,9 +4397,20 @@ export const AdminPortal: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Direct notification & routing triggers */}
+                            {/* Fast Action Buttons */}
                             <div className="flex flex-wrap items-center gap-1.5">
-                              {/* Direct Google Maps Turn-by-Turn Nav Link */}
+                              {/* Open Kitchen / Shop Pick Slip */}
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPickSlipOrder(ord)}
+                                className="p-1.5 bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/80 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                                title="Open Dedicated Shop Kitchen & Store Pick Slip"
+                              >
+                                <ChefHat className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Pick Slip</span>
+                              </button>
+
+                              {/* Direct Google Maps Navigation */}
                               <a
                                 href={navUrl}
                                 target="_blank"
@@ -4301,10 +4419,10 @@ export const AdminPortal: React.FC = () => {
                                 title="Open turn-by-turn navigation in Google Maps"
                               >
                                 <Navigation className="w-3.5 h-3.5" />
-                                <span>GPS Route</span>
+                                <span>GPS</span>
                               </a>
 
-                              {/* Send to Admin's own WhatsApp (+974 7731 5415) */}
+                              {/* Alert Admin WhatsApp */}
                               <button
                                 type="button"
                                 onClick={() => sendAdminOrderAlertWhatsApp(ord)}
@@ -4343,18 +4461,332 @@ export const AdminPortal: React.FC = () => {
                                 <span className="hidden xl:inline">SMS</span>
                               </a>
 
-                              {/* Print Official Receipt / Kitchen Ticket */}
+                              {/* Print Official Receipt */}
                               <button
                                 type="button"
                                 onClick={() => setSelectedReceiptOrder(ord)}
-                                className="p-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
                                 title="View & Print Official Customer Receipt / Tax Invoice"
                               >
-                                <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                                <Printer className="w-3.5 h-3.5 text-slate-300" />
                                 <span>Receipt</span>
                               </button>
                             </div>
                           </div>
+                        </div>
+
+                        {/* SHOP FULFILLMENT: ITEMS & QUANTITIES IDENTIFICATION HUB */}
+                        <div className="space-y-2">
+                          {/* Subheader: Item count, Progress bar, and View switcher */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 px-3 py-2 rounded-xl border border-slate-800">
+                            <div className="flex items-center gap-2">
+                              <ChefHat className="w-4 h-4 text-emerald-400" />
+                              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                                Items to Gather in Store
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-emerald-300 font-bold border border-slate-700">
+                                {ord.items.length} item{ord.items.length > 1 ? 's' : ''} ({totalOrderUnits} units)
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-400">
+                                · {pickedForThisOrderCount}/{ord.items.length} gathered
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* View Modes */}
+                              <div className="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+                                <button
+                                  type="button"
+                                  onClick={() => setShopPickViewMode('cards')}
+                                  className={`px-2 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                                    shopPickViewMode === 'cards'
+                                      ? 'bg-emerald-600 text-white shadow-xs'
+                                      : 'text-slate-400 hover:text-white'
+                                  }`}
+                                  title="Visual Product Cards with Big QTY"
+                                >
+                                  <LayoutGrid className="w-3 h-3" />
+                                  <span>Cards</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShopPickViewMode('table')}
+                                  className={`px-2 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                                    shopPickViewMode === 'table'
+                                      ? 'bg-emerald-600 text-white shadow-xs'
+                                      : 'text-slate-400 hover:text-white'
+                                  }`}
+                                  title="Checklist Table"
+                                >
+                                  <List className="w-3 h-3" />
+                                  <span>Table</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShopPickViewMode('compact')}
+                                  className={`px-2 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                                    shopPickViewMode === 'compact'
+                                      ? 'bg-emerald-600 text-white shadow-xs'
+                                      : 'text-slate-400 hover:text-white'
+                                  }`}
+                                  title="Compact Tags"
+                                >
+                                  <span>Compact</span>
+                                </button>
+                              </div>
+
+                              {/* Mark All Picked Button */}
+                              {!isOrderFullyPicked ? (
+                                <button
+                                  type="button"
+                                  onClick={() => markAllOrderItemsPicked(ord)}
+                                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold rounded-lg border border-slate-700 transition-colors flex items-center gap-1"
+                                >
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <span>Mark All Picked</span>
+                                </button>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 rounded-lg text-[10px] font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>All Gathered!</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* VIEW MODE 1: VISUAL PRODUCT CARDS (HIGH-CONTRAST QUANTITY & PHOTOS) */}
+                          {shopPickViewMode === 'cards' && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                              {ord.items.map((item, itemIdx) => {
+                                const itemKey = `${item.productId || item.product?.id || itemIdx}-${item.selectedWeight || 'std'}`;
+                                const isPicked = !!(orderPickedItemsMap[ord.id]?.[itemKey]);
+                                const dept = getDepartmentInfo(item.product?.category);
+                                const qty = item.quantity || 1;
+                                const unitPrice = item.pricePerUnit || item.product?.basePrice || 0;
+                                const lineTotal = unitPrice * qty;
+
+                                return (
+                                  <div
+                                    key={itemKey}
+                                    onClick={() => toggleOrderItemPicked(ord.id, itemKey)}
+                                    className={`p-2.5 rounded-xl border transition-all cursor-pointer select-none flex items-center justify-between gap-2.5 ${
+                                      isPicked
+                                        ? 'bg-emerald-950/30 border-emerald-600/70 ring-1 ring-emerald-500/20 opacity-90'
+                                        : 'bg-slate-950/90 border-slate-800 hover:border-slate-700 shadow-xs'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                      {/* Interactive Checkbox */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleOrderItemPicked(ord.id, itemKey);
+                                        }}
+                                        className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                                          isPicked
+                                            ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-xs'
+                                            : 'bg-slate-900 border-slate-700 text-transparent hover:border-emerald-500'
+                                        }`}
+                                        title={isPicked ? 'Item picked - tap to uncheck' : 'Tap to mark picked'}
+                                      >
+                                        <Check className="w-4 h-4 stroke-[3]" />
+                                      </button>
+
+                                      {/* Thumbnail Photo */}
+                                      <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0 flex items-center justify-center relative">
+                                        {item.product?.image ? (
+                                          <img
+                                            src={item.product.image}
+                                            alt={item.product.name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (e.currentTarget as HTMLElement).style.display = 'none';
+                                            }}
+                                          />
+                                        ) : (
+                                          <Package className="w-5 h-5 text-slate-600" />
+                                        )}
+                                        {isPicked && (
+                                          <div className="absolute inset-0 bg-emerald-950/70 flex items-center justify-center text-emerald-300 font-bold">
+                                            <Check className="w-5 h-5 stroke-[3]" />
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Title, Unit, Department */}
+                                      <div className="min-w-0 flex-1">
+                                        <h4
+                                          className={`text-xs font-bold truncate ${
+                                            isPicked ? 'text-slate-400 line-through' : 'text-white'
+                                          }`}
+                                          title={item.product?.name}
+                                        >
+                                          {item.product?.name || (item as any).name || 'Harvest Item'}
+                                        </h4>
+                                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 text-emerald-300 border border-slate-800">
+                                            {item.selectedWeight || item.product?.baseWeight || 'Standard'}
+                                          </span>
+                                          <span className="text-[9px] text-slate-400 truncate max-w-[120px]">
+                                            {dept.icon} {dept.name}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* BIG HIGH-CONTRAST QUANTITY BADGE */}
+                                    <div className="flex flex-col items-end shrink-0 pl-1">
+                                      <div
+                                        className={`px-2.5 py-1 rounded-lg font-black text-xs font-mono shadow-xs ${
+                                          qty > 1
+                                            ? 'bg-amber-400 text-slate-950 ring-1 ring-amber-300'
+                                            : 'bg-emerald-500 text-slate-950'
+                                        }`}
+                                        title={`Quantity to gather: ${qty}`}
+                                      >
+                                        x{qty} QTY
+                                      </div>
+                                      <span className="text-[10px] font-mono text-slate-400 mt-0.5">
+                                        {formatPrice(lineTotal)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* VIEW MODE 2: KITCHEN CHECKLIST TABLE */}
+                          {shopPickViewMode === 'table' && (
+                            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/90">
+                              <table className="w-full text-left text-xs">
+                                <thead className="bg-slate-900 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                                  <tr>
+                                    <th className="p-2 w-10 text-center">Pick</th>
+                                    <th className="p-2 w-12">Photo</th>
+                                    <th className="p-2">Item Name & SKU</th>
+                                    <th className="p-2">Weight / Unit</th>
+                                    <th className="p-2">Department Location</th>
+                                    <th className="p-2 text-center font-bold text-white">Qty to Pick</th>
+                                    <th className="p-2 text-right">Unit Price</th>
+                                    <th className="p-2 text-right">Line Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60">
+                                  {ord.items.map((item, itemIdx) => {
+                                    const itemKey = `${item.productId || item.product?.id || itemIdx}-${item.selectedWeight || 'std'}`;
+                                    const isPicked = !!(orderPickedItemsMap[ord.id]?.[itemKey]);
+                                    const dept = getDepartmentInfo(item.product?.category);
+                                    const qty = item.quantity || 1;
+                                    const unitPrice = item.pricePerUnit || item.product?.basePrice || 0;
+                                    const lineTotal = unitPrice * qty;
+
+                                    return (
+                                      <tr
+                                        key={itemKey}
+                                        onClick={() => toggleOrderItemPicked(ord.id, itemKey)}
+                                        className={`cursor-pointer hover:bg-slate-900/60 transition-colors ${
+                                          isPicked ? 'bg-emerald-950/20' : ''
+                                        }`}
+                                      >
+                                        <td className="p-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleOrderItemPicked(ord.id, itemKey)}
+                                            className={`w-5 h-5 rounded border mx-auto flex items-center justify-center ${
+                                              isPicked
+                                                ? 'bg-emerald-500 border-emerald-400 text-slate-950'
+                                                : 'bg-slate-900 border-slate-700 text-transparent'
+                                            }`}
+                                          >
+                                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                          </button>
+                                        </td>
+                                        <td className="p-2">
+                                          <div className="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden flex items-center justify-center">
+                                            {item.product?.image ? (
+                                              <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                              <Package className="w-4 h-4 text-slate-600" />
+                                            )}
+                                          </div>
+                                        </td>
+                                        <td className="p-2">
+                                          <span className={`font-bold block ${isPicked ? 'text-slate-400 line-through' : 'text-white'}`}>
+                                            {item.product?.name || (item as any).name}
+                                          </span>
+                                          {item.product?.sku && (
+                                            <span className="text-[10px] text-slate-500 font-mono">{item.product.sku}</span>
+                                          )}
+                                        </td>
+                                        <td className="p-2">
+                                          <span className="px-2 py-0.5 rounded bg-slate-900 text-emerald-300 font-semibold border border-slate-800 text-[11px]">
+                                            {item.selectedWeight || item.product?.baseWeight || 'Standard'}
+                                          </span>
+                                        </td>
+                                        <td className="p-2">
+                                          <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                            <span>{dept.icon}</span>
+                                            <span>{dept.name}</span>
+                                          </span>
+                                        </td>
+                                        <td className="p-2 text-center">
+                                          <span
+                                            className={`inline-block px-3 py-1 rounded-lg font-black font-mono text-xs shadow-xs ${
+                                              qty > 1
+                                                ? 'bg-amber-400 text-slate-950 ring-1 ring-amber-300'
+                                                : 'bg-emerald-500 text-slate-950'
+                                            }`}
+                                          >
+                                            x{qty} QTY
+                                          </span>
+                                        </td>
+                                        <td className="p-2 text-right font-mono text-slate-400">{formatPrice(unitPrice)}</td>
+                                        <td className="p-2 text-right font-mono font-bold text-emerald-400">{formatPrice(lineTotal)}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {/* VIEW MODE 3: COMPACT TAGS */}
+                          {shopPickViewMode === 'compact' && (
+                            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800">
+                              {ord.items.map((item, itemIdx) => {
+                                const itemKey = `${item.productId || item.product?.id || itemIdx}-${item.selectedWeight || 'std'}`;
+                                const isPicked = !!(orderPickedItemsMap[ord.id]?.[itemKey]);
+                                const qty = item.quantity || 1;
+
+                                return (
+                                  <button
+                                    key={itemKey}
+                                    type="button"
+                                    onClick={() => toggleOrderItemPicked(ord.id, itemKey)}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-all ${
+                                      isPicked
+                                        ? 'bg-emerald-950/40 text-slate-400 border-emerald-700/60 line-through'
+                                        : 'bg-slate-900 text-white border-slate-700 hover:border-emerald-500'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-black font-mono ${
+                                        qty > 1 ? 'bg-amber-400 text-slate-950' : 'bg-emerald-500 text-slate-950'
+                                      }`}
+                                    >
+                                      x{qty}
+                                    </span>
+                                    <span className="font-bold">{item.product?.name || (item as any).name}</span>
+                                    <span className="text-emerald-300 text-[10px]">
+                                      ({item.selectedWeight || 'Standard'})
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -4831,6 +5263,23 @@ export const AdminPortal: React.FC = () => {
           isOpen={Boolean(selectedReceiptOrder)}
           onClose={() => setSelectedReceiptOrder(null)}
           formatPrice={formatPrice}
+        />
+      )}
+
+      {/* Dedicated Shop Kitchen & Store Pick Slip Modal */}
+      {selectedPickSlipOrder && (
+        <ShopPickSlipModal
+          order={selectedPickSlipOrder}
+          isOpen={Boolean(selectedPickSlipOrder)}
+          onClose={() => setSelectedPickSlipOrder(null)}
+          formatPrice={formatPrice}
+          pickedItemsMap={orderPickedItemsMap[selectedPickSlipOrder.id] || {}}
+          onToggleItemPicked={(itemKey) => toggleOrderItemPicked(selectedPickSlipOrder.id, itemKey)}
+          onMarkAllPicked={() => markAllOrderItemsPicked(selectedPickSlipOrder)}
+          onAdvanceStatus={(status) => {
+            updateOrderStatus(selectedPickSlipOrder.id, status);
+            showToast(`Order #${selectedPickSlipOrder.orderNumber} advanced to ${status === 'on_the_way' ? 'On Route' : status}!`);
+          }}
         />
       )}
 
