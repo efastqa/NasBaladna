@@ -1,6 +1,14 @@
 {
   "products": [
     {
+      "name": "Medjool Dates Premium",
+      "category": "fruits",
+      "basePrice": 29.5,
+      "stock": 55,
+      "baseWeight": "1kg",
+      "id": "bulk-1793178606606-bxkn"
+    },
+    {
       "id": "nb-near-avocado",
       "name": "Ripe Hass Avocados (Ready-to-Eat 2-Pack)",
       "scientificName": "Persea americana",

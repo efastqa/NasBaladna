@@ -976,9 +976,81 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Unauthorized: Admin access required');
       return false;
     }
-    setProducts((prev) => [...newProds, ...prev]);
+
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    setProducts((prev) => {
+      const nextList = [...prev];
+      const seenKeys = new Set<string>();
+
+      newProds.forEach((incoming) => {
+        const normName = incoming.name.trim().toLowerCase();
+        const normSku = (incoming.sku || '').trim().toLowerCase();
+        const key = normSku || normName;
+
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        const existingIdx = nextList.findIndex(
+          (p) =>
+            (incoming.id && p.id === incoming.id) ||
+            (normSku && (p.sku || '').trim().toLowerCase() === normSku) ||
+            p.name.trim().toLowerCase() === normName
+        );
+
+        if (existingIdx !== -1) {
+          // Already exists: update in place without creating a duplicate!
+          const existing = nextList[existingIdx];
+          const existingWeights = new Set(
+            (existing.weightOptions || []).map((w) => w.weight.toLowerCase().trim())
+          );
+          const newWeightOptions = [...(existing.weightOptions || [])];
+          (incoming.weightOptions || []).forEach((w) => {
+            if (w.weight && !existingWeights.has(w.weight.toLowerCase().trim())) {
+              newWeightOptions.push(w);
+              existingWeights.add(w.weight.toLowerCase().trim());
+            }
+          });
+
+          nextList[existingIdx] = {
+            ...existing,
+            ...incoming,
+            id: existing.id,
+            sku: existing.sku || incoming.sku,
+            basePrice: incoming.basePrice !== undefined ? incoming.basePrice : existing.basePrice,
+            stock: incoming.stock !== undefined ? incoming.stock : existing.stock,
+            baseWeight: incoming.baseWeight || existing.baseWeight,
+            weightOptions: newWeightOptions.length ? newWeightOptions : existing.weightOptions,
+            category: incoming.category || existing.category,
+            image: incoming.image || existing.image,
+            thumbnails: incoming.thumbnails?.length ? incoming.thumbnails : existing.thumbnails,
+            expiryDate: incoming.expiryDate !== undefined ? incoming.expiryDate : existing.expiryDate,
+            originalPrice: incoming.originalPrice !== undefined ? incoming.originalPrice : existing.originalPrice,
+            discountPercent: incoming.discountPercent !== undefined ? incoming.discountPercent : existing.discountPercent,
+            isNearExpiry: incoming.isNearExpiry !== undefined ? incoming.isNearExpiry : existing.isNearExpiry,
+          };
+          updatedCount++;
+        } else {
+          // Brand new product
+          nextList.unshift(incoming);
+          addedCount++;
+        }
+      });
+
+      return nextList;
+    });
+
     api.bulkAddProducts(newProds).catch((e) => console.warn('API bulkAddProducts:', e));
-    showToast(`Imported ${newProds.length} products successfully!`);
+
+    if (updatedCount > 0 && addedCount > 0) {
+      showToast(`Bulk update: ${addedCount} added, ${updatedCount} updated (0 duplicates)!`);
+    } else if (updatedCount > 0) {
+      showToast(`Updated ${updatedCount} existing products without duplicates!`);
+    } else {
+      showToast(`Imported ${addedCount} new products successfully!`);
+    }
+
     return true;
   };
 

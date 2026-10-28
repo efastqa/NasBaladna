@@ -624,18 +624,71 @@ async function startServer() {
       return res.status(400).json({ error: 'Invalid products array' });
     }
 
-    const addedList: any[] = [];
+    let addedCount = 0;
+    let updatedCount = 0;
+    const seenKeys = new Set<string>();
+
     products.forEach((p) => {
-      const newP = {
-        ...p,
-        id: p.id || `bulk-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      };
-      addedList.push(newP);
+      const normName = (p.name || '').trim().toLowerCase();
+      const normSku = (p.sku || '').trim().toLowerCase();
+      const key = normSku || normName;
+
+      if (!normName || seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      const existingIdx = db.products.findIndex(
+        (existing) =>
+          (p.id && existing.id === p.id) ||
+          (normSku && (existing.sku || '').trim().toLowerCase() === normSku) ||
+          (existing.name || '').trim().toLowerCase() === normName
+      );
+
+      if (existingIdx !== -1) {
+        // Product already exists: update existing fields in place, no duplicate added
+        const existing = db.products[existingIdx];
+        const existingWeights = new Set(
+          (existing.weightOptions || []).map((w: any) => (w.weight || '').toLowerCase().trim())
+        );
+        const mergedWeights = [...(existing.weightOptions || [])];
+        (p.weightOptions || []).forEach((w: any) => {
+          if (w.weight && !existingWeights.has(w.weight.toLowerCase().trim())) {
+            mergedWeights.push(w);
+            existingWeights.add(w.weight.toLowerCase().trim());
+          }
+        });
+
+        db.products[existingIdx] = {
+          ...existing,
+          ...p,
+          id: existing.id,
+          sku: existing.sku || p.sku,
+          basePrice: p.basePrice !== undefined ? Number(p.basePrice) : existing.basePrice,
+          stock: p.stock !== undefined ? Number(p.stock) : existing.stock,
+          baseWeight: p.baseWeight || existing.baseWeight,
+          weightOptions: mergedWeights.length ? mergedWeights : existing.weightOptions,
+          category: p.category || existing.category,
+          image: p.image || existing.image,
+          thumbnails: Array.isArray(p.thumbnails) && p.thumbnails.length ? p.thumbnails : existing.thumbnails,
+          expiryDate: p.expiryDate !== undefined ? p.expiryDate : existing.expiryDate,
+          originalPrice: p.originalPrice !== undefined ? p.originalPrice : existing.originalPrice,
+          discountPercent: p.discountPercent !== undefined ? p.discountPercent : existing.discountPercent,
+          isNearExpiry: p.isNearExpiry !== undefined ? p.isNearExpiry : existing.isNearExpiry,
+        };
+        updatedCount++;
+      } else {
+        // New product to add
+        const newP = {
+          ...p,
+          id: p.id || `bulk-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        };
+        db.products.unshift(newP);
+        addedCount++;
+      }
     });
 
-    db.products = [...addedList, ...db.products];
     saveDatabase();
-    res.status(201).json(db.products);
+    console.log(`✅ Bulk products processed: ${addedCount} added, ${updatedCount} updated (0 duplicates).`);
+    res.status(201).json({ products: db.products, addedCount, updatedCount });
   });
 
   app.post('/api/products/bulk-price', (req: Request, res: Response) => {

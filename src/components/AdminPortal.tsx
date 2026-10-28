@@ -379,6 +379,7 @@ export const AdminPortal: React.FC = () => {
   const [bulkRowImageOverrides, setBulkRowImageOverrides] = useState<Record<number, string>>({});
   const [bulkRowExpiryOverrides, setBulkRowExpiryOverrides] = useState<Record<number, string>>({});
   const [bulkRowOriginalPriceOverrides, setBulkRowOriginalPriceOverrides] = useState<Record<number, number>>({});
+  const [bulkRowWeightOverrides, setBulkRowWeightOverrides] = useState<Record<number, string>>({});
   const [bulkActiveSubTab, setBulkActiveSubTab] = useState<'editor' | 'preview' | 'images'>('editor');
   const [bulkSelectedRowForImage, setBulkSelectedRowForImage] = useState<number | null>(null);
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
@@ -862,6 +863,135 @@ export const AdminPortal: React.FC = () => {
     showToast('Loaded standard sample produce batch!');
   };
 
+  // Smart unit options generator for pcs, kg, g, packs, boxes, bunches
+  const generateWeightOptionsForUnit = (baseWeight: string) => {
+    const clean = (baseWeight || '').trim().toLowerCase();
+
+    // 1. Pieces / Pcs (e.g. "1 pc", "2 pcs", "10 pcs", "piece")
+    if (clean.includes('pc') || clean.includes('piece') || clean.includes('item')) {
+      const numMatch = clean.match(/(\d+)/);
+      const count = numMatch ? parseInt(numMatch[1], 10) : 1;
+      if (count <= 1) {
+        return [
+          { weight: '1 pc', multiplier: 1.0 },
+          { weight: '3 pcs (Pack)', multiplier: 2.85 },
+          { weight: '6 pcs (Box)', multiplier: 5.4 },
+          { weight: '12 pcs (Family Crate)', multiplier: 10.0 },
+        ];
+      } else if (count === 2) {
+        return [
+          { weight: '2-Pack', multiplier: 1.0 },
+          { weight: '4-Pack', multiplier: 1.9 },
+          { weight: '8-Pack Value', multiplier: 3.6 },
+        ];
+      } else {
+        return [
+          { weight: `${count} pcs`, multiplier: 1.0 },
+          { weight: `${count * 2} pcs (Double)`, multiplier: 1.9 },
+          { weight: `${count * 4} pcs (Bulk Box)`, multiplier: 3.6 },
+        ];
+      }
+    }
+
+    // 2. Grams (e.g. "100g", "200g", "250g", "400g", "500g", "750g")
+    if (clean.endsWith('g') && !clean.endsWith('kg')) {
+      const numMatch = clean.match(/(\d+)\s*g/);
+      const grams = numMatch ? parseInt(numMatch[1], 10) : 500;
+      if (grams <= 250) {
+        return [
+          { weight: `${grams}g`, multiplier: 1.0 },
+          { weight: '500g', multiplier: 1.9 },
+          { weight: '1kg (Value Pack)', multiplier: 3.6 },
+        ];
+      } else if (grams <= 500) {
+        return [
+          { weight: `${grams}g`, multiplier: 1.0 },
+          { weight: '1kg', multiplier: 1.9 },
+          { weight: '2kg (Farm Box)', multiplier: 3.6 },
+        ];
+      } else {
+        return [
+          { weight: `${grams}g`, multiplier: 1.0 },
+          { weight: '1.5kg', multiplier: 1.85 },
+          { weight: '3kg Crate', multiplier: 3.5 },
+        ];
+      }
+    }
+
+    // 3. Kilograms (e.g. "1kg", "2kg", "5kg")
+    if (clean.includes('kg')) {
+      const numMatch = clean.match(/(\d+(?:\.\d+)?)\s*kg/);
+      const kg = numMatch ? parseFloat(numMatch[1]) : 1;
+      if (kg <= 1) {
+        return [
+          { weight: '1kg', multiplier: 1.0 },
+          { weight: '2kg', multiplier: 1.9 },
+          { weight: '5kg (Farm Crate)', multiplier: 4.5 },
+        ];
+      } else if (kg <= 2) {
+        return [
+          { weight: `${kg}kg`, multiplier: 1.0 },
+          { weight: `${kg * 2}kg`, multiplier: 1.9 },
+          { weight: '5kg Crate', multiplier: 2.3 },
+        ];
+      } else {
+        return [
+          { weight: `${kg}kg Crate`, multiplier: 1.0 },
+          { weight: `${kg * 2}kg Bulk Box`, multiplier: 1.9 },
+        ];
+      }
+    }
+
+    // 4. Liters / ml
+    if (clean.includes('ml') || clean.endsWith('l')) {
+      if (clean.includes('ml')) {
+        return [
+          { weight: baseWeight, multiplier: 1.0 },
+          { weight: '1L Bottle', multiplier: 1.85 },
+          { weight: '6x Multi-Pack', multiplier: 5.2 },
+        ];
+      } else {
+        return [
+          { weight: '1L Bottle', multiplier: 1.0 },
+          { weight: '2L Jug', multiplier: 1.9 },
+          { weight: '6x 1L Carton', multiplier: 5.4 },
+        ];
+      }
+    }
+
+    // 5. Bunches / Bundles
+    if (clean.includes('bunch') || clean.includes('bundle')) {
+      return [
+        { weight: '1 Bunch', multiplier: 1.0 },
+        { weight: '3 Bunches (Family)', multiplier: 2.7 },
+        { weight: '5 Bunches (Value)', multiplier: 4.2 },
+      ];
+    }
+
+    // 6. Box / Tray / Carton / Pack
+    if (
+      clean.includes('box') ||
+      clean.includes('tray') ||
+      clean.includes('pack') ||
+      clean.includes('tub') ||
+      clean.includes('jar') ||
+      clean.includes('tin')
+    ) {
+      return [
+        { weight: baseWeight, multiplier: 1.0 },
+        { weight: `2x (${baseWeight})`, multiplier: 1.9 },
+        { weight: `4x Family Pack`, multiplier: 3.6 },
+      ];
+    }
+
+    // Fallback
+    return [
+      { weight: baseWeight || '500g', multiplier: 1.0 },
+      { weight: '1kg', multiplier: 1.85 },
+      { weight: '2kg', multiplier: 3.5 },
+    ];
+  };
+
   // Parsed representation of current bulk rows for preview & validation
   const parsedBulkRows = useMemo(() => {
     try {
@@ -875,23 +1005,25 @@ export const AdminPortal: React.FC = () => {
       );
       const imgColIdx = headerCols.findIndex((c) => c.includes('image') || c.includes('photo') || c.includes('img'));
 
-      const rows: {
-        index: number;
-        name: string;
-        category: CategoryType;
-        price: number;
-        stock: number;
-        weight: string;
-        wholesalePrice: number;
-        wholesaleUnit: string;
-        rawImage: string;
-        resolvedImage: string;
-        expiryDate: string;
-        originalPrice: number;
-        discountPercent: number;
-        isNearExpiry: boolean;
-        isValid: boolean;
-      }[] = [];
+  const rows: {
+    index: number;
+    name: string;
+    category: CategoryType;
+    price: number;
+    stock: number;
+    weight: string;
+    wholesalePrice: number;
+    wholesaleUnit: string;
+    rawImage: string;
+    resolvedImage: string;
+    expiryDate: string;
+    originalPrice: number;
+    discountPercent: number;
+    isNearExpiry: boolean;
+    isAlreadyExisting: boolean;
+    existingProduct?: Product;
+    isValid: boolean;
+  }[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -903,11 +1035,18 @@ export const AdminPortal: React.FC = () => {
           const isNearExpiry = rawCat === 'near_expiry';
           const price = parseFloat(cols[2]) || 5.0;
           const stock = parseInt(cols[3], 10) || 20;
-          const weight = cols[4] || '500g';
+          const weight =
+            bulkRowWeightOverrides[i] !== undefined ? bulkRowWeightOverrides[i] : cols[4] || '500g';
           const wholesalePrice = cols[5] ? parseFloat(cols[5]) : price * 4.5;
           const wholesaleUnit = cols[6] || '5kg Crate';
           const rawImage = imgColIdx !== -1 && cols[imgColIdx] ? cols[imgColIdx] : cols[7] || '';
           const resolvedImage = resolveBulkRowImage(i, name, rawCat, rawImage);
+
+          const existingProduct = products.find(
+            (p) =>
+              (p.sku && name && p.sku.toLowerCase() === name.toLowerCase()) ||
+              p.name.toLowerCase() === name.toLowerCase()
+          );
 
           // Expiry Date resolution (check manual row override, column by header name, or 9th column cols[8])
           let expiryDate = '';
@@ -955,6 +1094,8 @@ export const AdminPortal: React.FC = () => {
             originalPrice,
             discountPercent,
             isNearExpiry: isNearExpiry || Boolean(expiryDate),
+            isAlreadyExisting: Boolean(existingProduct),
+            existingProduct,
             isValid: Boolean(name && price > 0),
           });
         }
@@ -963,7 +1104,7 @@ export const AdminPortal: React.FC = () => {
     } catch {
       return [];
     }
-  }, [bulkCsvText, bulkUploadedImages, bulkRowImageOverrides, bulkRowExpiryOverrides, bulkRowOriginalPriceOverrides]);
+  }, [bulkCsvText, bulkUploadedImages, bulkRowImageOverrides, bulkRowExpiryOverrides, bulkRowOriginalPriceOverrides, bulkRowWeightOverrides, products]);
 
   const handleProcessBulkCsv = () => {
     try {
@@ -982,21 +1123,34 @@ export const AdminPortal: React.FC = () => {
             ? Math.round(((resolvedOriginalPrice - row.price) / resolvedOriginalPrice) * 100)
             : 50);
 
+        const existingProd =
+          row.existingProduct ||
+          products.find(
+            (p) =>
+              (p.sku && row.name && p.sku.toLowerCase() === row.name.toLowerCase()) ||
+              p.name.toLowerCase() === row.name.toLowerCase()
+          );
+
+        // Generate unit-accurate weight options based on pcs, kg, g, pack, box
+        const weightOptions = existingProd?.weightOptions?.length
+          ? existingProd.weightOptions
+          : generateWeightOptionsForUnit(row.weight);
+
         return {
-          id: `prod-bulk-${Date.now()}-${row.index}-${Math.random().toString(36).substr(2, 4)}`,
+          id: existingProd
+            ? existingProd.id
+            : `prod-bulk-${Date.now()}-${row.index}-${Math.random().toString(36).substr(2, 4)}`,
           name: row.name,
           category: row.category,
-          brand: isNearExpiry ? 'NasBaladna Farm Deals' : 'NasBaladna Farm Direct',
-          sku: isNearExpiry
-            ? `NB-EXP-${Math.floor(100 + Math.random() * 900)}`
-            : `NB-BLK-${Math.floor(1000 + Math.random() * 9000)}`,
+          brand: existingProd?.brand || (isNearExpiry ? 'NasBaladna Farm Deals' : 'NasBaladna Farm Direct'),
+          sku:
+            existingProd?.sku ||
+            (isNearExpiry
+              ? `NB-EXP-${Math.floor(100 + Math.random() * 900)}`
+              : `NB-BLK-${Math.floor(1000 + Math.random() * 9000)}`),
           basePrice: row.price,
           baseWeight: row.weight,
-          weightOptions: [
-            { weight: row.weight, multiplier: 1.0 },
-            { weight: '1kg', multiplier: 1.85 },
-            { weight: '2kg', multiplier: 3.5 },
-          ],
+          weightOptions,
           stock: row.stock,
           image: row.resolvedImage,
           thumbnails: [row.resolvedImage],
@@ -3242,6 +3396,43 @@ export const AdminPortal: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Easy Unit & Weight Presets for pcs, kg, g, pack, box */}
+                <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                    <span className="font-bold text-emerald-400">⚡ Easy Unit Presets (pcs, kg, g):</span>
+                    <span className="text-[11px] text-slate-400">Click to append a formatted sample row:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { label: '🥒 Pcs (e.g. 1 pc, 6 pcs)', row: 'Snack Persian Cucumbers, vegetables, 4.0, 30, 1 pc, 30, 20 pcs Box, vegetables, , \n' },
+                      { label: '🥕 Grams (e.g. 250g, 500g)', row: 'Vine Cherry Tomatoes, vegetables, 5.0, 35, 250g, 40, 3kg Box, vegetables, , \n' },
+                      { label: '🥔 Kilograms (e.g. 1kg, 2kg)', row: 'Golden Farm Potatoes, vegetables, 6.0, 50, 1kg, 25, 5kg Crate, vegetables, , \n' },
+                      { label: '🌿 Bunches (e.g. 1 Bunch)', row: 'Fresh Wild Mint, herbs, 2.5, 40, 1 Bunch, 20, 3kg Box, herbs, , \n' },
+                      { label: '📦 Packs / Boxes (e.g. 1 Box)', row: 'Organic Brown Eggs, poultry_eggs, 18.0, 30, 15 Eggs Tray, 80, 5 Trays, poultry_eggs, , \n' },
+                    ].map((btn) => (
+                      <button
+                        key={btn.label}
+                        type="button"
+                        onClick={() => {
+                          setBulkCsvText((prev) => prev.trim() + '\n' + btn.row);
+                          showToast(`Appended ${btn.label.split(' ')[1]} sample row!`);
+                        }}
+                        className="px-2 py-1 bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Smart Deduplication Notice */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-[11px] text-emerald-300">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    <strong>Smart Deduplication Active:</strong> If a product name or SKU is already in your store, importing updates its price, stock, and unit options in place — no duplicates are created!
+                  </span>
+                </div>
+
                 <div>
                   <textarea
                     rows={9}
@@ -3383,9 +3574,22 @@ export const AdminPortal: React.FC = () => {
                               </div>
                             </td>
                             <td className="p-3 font-bold text-white">
-                              <div>{row.name}</div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{row.name}</span>
+                                {row.isAlreadyExisting ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/90 text-amber-300 border border-amber-700/80 flex items-center gap-1 shadow-2xs">
+                                    <RefreshCw className="w-2.5 h-2.5 text-amber-400" />
+                                    <span>Updates Existing (No Duplicate)</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-700/80 flex items-center gap-1 shadow-2xs">
+                                    <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                                    <span>New Product</span>
+                                  </span>
+                                )}
+                              </div>
                               {row.rawImage && (
-                                <span className="text-[10px] font-mono text-slate-400 block truncate max-w-[140px]">
+                                <span className="text-[10px] font-mono text-slate-400 block truncate max-w-[140px] mt-0.5">
                                   src: {row.rawImage}
                                 </span>
                               )}
@@ -3409,7 +3613,50 @@ export const AdminPortal: React.FC = () => {
                               <span className="px-1.5 py-0.5 rounded bg-slate-950 text-slate-300 font-mono text-[11px] font-bold block w-fit">
                                 {row.stock} in stock
                               </span>
-                              <span className="text-[11px] text-slate-400 block mt-0.5">{row.weight}</span>
+                              {/* Unit / Weight Editor with Quick Unit Pills */}
+                              <div className="mt-1.5 space-y-1">
+                                <input
+                                  type="text"
+                                  value={row.weight}
+                                  onChange={(e) =>
+                                    setBulkRowWeightOverrides((prev) => ({
+                                      ...prev,
+                                      [row.index]: e.target.value,
+                                    }))
+                                  }
+                                  className="px-2 py-0.5 bg-slate-950 border border-slate-700 rounded text-xs font-semibold text-white w-24 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                  placeholder="e.g. 1 pc, 1kg, 500g"
+                                  title="Edit product unit or weight"
+                                />
+                                <div className="flex flex-wrap gap-1">
+                                  {[
+                                    { label: 'pcs', val: '1 pc' },
+                                    { label: 'kg', val: '1kg' },
+                                    { label: 'g', val: '500g' },
+                                    { label: 'pack', val: '1 Pack' },
+                                    { label: 'box', val: '1 Box' },
+                                  ].map((u) => (
+                                    <button
+                                      key={u.label}
+                                      type="button"
+                                      onClick={() =>
+                                        setBulkRowWeightOverrides((prev) => ({
+                                          ...prev,
+                                          [row.index]: u.val,
+                                        }))
+                                      }
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-colors cursor-pointer ${
+                                        row.weight.toLowerCase().includes(u.label)
+                                          ? 'bg-emerald-600 text-white shadow-2xs'
+                                          : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                                      }`}
+                                      title={`Set unit to ${u.val}`}
+                                    >
+                                      {u.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             </td>
                             {/* EXPIRY DATE COLUMN */}
                             <td className="p-3">
