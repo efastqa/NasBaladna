@@ -102,6 +102,9 @@ export const AdminPortal: React.FC = () => {
     formatPrice,
     ordersHistory,
     updateOrderStatus,
+    clearDeliveredOrders,
+    clearAllOrders,
+    deleteOrder,
     inventoryLogs,
     updateStock,
     categories,
@@ -4195,58 +4198,106 @@ export const AdminPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
-              <button
-                type="button"
-                onClick={() => setOrderFilter('all')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap ${
-                  orderFilter === 'all'
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-900 text-slate-400 hover:text-white'
-                }`}
-              >
-                All Orders ({ordersHistory.length})
-              </button>
+            {/* Filter Pills & Go-Live Clear Actions */}
+            {(() => {
+              const deliveredCount = ordersHistory.filter((o) => o.status === 'delivered').length;
+              return (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => setOrderFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap ${
+                        orderFilter === 'all'
+                          ? 'bg-slate-800 text-white'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      All Orders ({ordersHistory.length})
+                    </button>
 
-              <button
-                type="button"
-                onClick={() => setOrderFilter('unread')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                  orderFilter === 'unread'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : unreadOrdersCount > 0
-                    ? 'bg-rose-950/70 text-rose-300 border border-rose-800/80'
-                    : 'bg-slate-900 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Bell className="w-3 h-3" />
-                <span>New Unread ({unreadOrdersCount})</span>
-              </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderFilter('unread')}
+                      className={`px-3 py-1.5 rounded-xl font-bold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                        orderFilter === 'unread'
+                          ? 'bg-rose-600 text-white shadow-xs'
+                          : unreadOrdersCount > 0
+                          ? 'bg-rose-950/70 text-rose-300 border border-rose-800/80'
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Bell className="w-3 h-3" />
+                      <span>New Unread ({unreadOrdersCount})</span>
+                    </button>
 
-              {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map((st) => {
-                const count = ordersHistory.filter((o) => o.status === st).length;
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setOrderFilter(st)}
-                    className={`px-3 py-1.5 rounded-xl font-semibold capitalize transition-colors whitespace-nowrap ${
-                      orderFilter === st
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-slate-900 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {st === 'on_the_way' ? 'On Route' : st} ({count})
-                  </button>
-                );
-              })}
-            </div>
+                    {(['confirmed', 'packing', 'on_the_way', 'delivered'] as OrderStatus[]).map((st) => {
+                      const count = ordersHistory.filter((o) => o.status === st).length;
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setOrderFilter(st)}
+                          className={`px-3 py-1.5 rounded-xl font-semibold capitalize transition-colors whitespace-nowrap ${
+                            orderFilter === st
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-slate-900 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {st === 'on_the_way' ? 'On Route' : st} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Go-Live Launch Cleanup Actions */}
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    {deliveredCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`Clear all ${deliveredCount} delivered test order(s) from database so your store starts fresh for Go-Live today?`)) {
+                            await clearDeliveredOrders();
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl font-bold bg-rose-950/90 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                        title="Remove all delivered test orders from database"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Clear Delivered ({deliveredCount})</span>
+                      </button>
+                    )}
+
+                    {ordersHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`Clear all ${ordersHistory.length} test order(s) completely from database to start 100% fresh for going live today?`)) {
+                            await clearAllOrders();
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-amber-200 border border-amber-800/60 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                        title="Clear all test orders from database to launch store clean"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Go-Live Reset All</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Orders Feed */}
             {ordersHistory.length === 0 ? (
-              <div className="text-center py-12 text-slate-500 text-xs">
-                No orders placed yet. Place a test order in the customer store to view management controls.
+              <div className="text-center py-16 bg-slate-950/60 border border-dashed border-slate-800 rounded-3xl p-6 space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-white">Store Is 100% Clean for Go-Live!</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  All past test and delivered orders have been cleared. As soon as your live customers place orders from phone or PC, they will chime in real-time here.
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -4470,6 +4521,20 @@ export const AdminPortal: React.FC = () => {
                               >
                                 <Printer className="w-3.5 h-3.5 text-slate-300" />
                                 <span>Receipt</span>
+                              </button>
+
+                              {/* Delete Individual Order */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`Delete order #${ord.orderNumber} permanently?`)) {
+                                    deleteOrder(ord.id);
+                                  }
+                                }}
+                                className="p-1.5 bg-slate-900 hover:bg-rose-950/80 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-800/80 rounded-lg transition-transform active:scale-95 text-[11px] font-bold flex items-center gap-1"
+                                title="Delete this order permanently"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>

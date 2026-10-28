@@ -136,6 +136,24 @@ export const api = {
     });
   },
 
+  deleteDeliveredOrders: async (): Promise<{ success: boolean; removedCount: number; remainingCount: number }> => {
+    return request<{ success: boolean; removedCount: number; remainingCount: number }>('/orders/delivered', {
+      method: 'DELETE',
+    });
+  },
+
+  deleteAllOrders: async (): Promise<{ success: boolean; removedCount: number; remainingCount: number }> => {
+    return request<{ success: boolean; removedCount: number; remainingCount: number }>('/orders', {
+      method: 'DELETE',
+    });
+  },
+
+  deleteOrder: async (orderId: string): Promise<{ success: boolean; deletedId: string }> => {
+    return request<{ success: boolean; deletedId: string }>(`/orders/${encodeURIComponent(orderId)}`, {
+      method: 'DELETE',
+    });
+  },
+
   getOrderStreamUrl: (): string => {
     return `${API_BASE}/orders/stream`;
   },

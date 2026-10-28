@@ -4,6 +4,7 @@ import {
   setDoc,
   getDocs,
   getDoc,
+  deleteDoc,
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -139,6 +140,50 @@ export const firestoreService = {
     } catch (e) {
       console.warn('Firestore fetchOrders error:', e);
       return [];
+    }
+  },
+
+  // Delete individual order from Firestore
+  deleteOrder: async (orderId: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, 'orders', orderId));
+    } catch (e) {
+      console.warn(`Firestore deleteOrder error for ${orderId}:`, e);
+    }
+  },
+
+  // Delete all delivered orders from Firestore (for going live clean)
+  clearDeliveredOrders: async (): Promise<number> => {
+    try {
+      const snapshot = await getDocs(collection(db, 'orders'));
+      let count = 0;
+      for (const d of snapshot.docs) {
+        const data = d.data();
+        if (data.status === 'delivered') {
+          await deleteDoc(doc(db, 'orders', d.id));
+          count++;
+        }
+      }
+      return count;
+    } catch (e) {
+      console.warn('Firestore clearDeliveredOrders error:', e);
+      return 0;
+    }
+  },
+
+  // Delete all orders from Firestore (complete fresh start)
+  clearAllOrders: async (): Promise<number> => {
+    try {
+      const snapshot = await getDocs(collection(db, 'orders'));
+      let count = 0;
+      for (const d of snapshot.docs) {
+        await deleteDoc(doc(db, 'orders', d.id));
+        count++;
+      }
+      return count;
+    } catch (e) {
+      console.warn('Firestore clearAllOrders error:', e);
+      return 0;
     }
   },
 

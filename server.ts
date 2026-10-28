@@ -872,6 +872,38 @@ async function startServer() {
     res.json(order);
   });
 
+  // DELETE DELIVERED ORDERS (FOR CLEAN STORE GO-LIVE)
+  app.delete('/api/orders/delivered', (req: Request, res: Response) => {
+    const beforeCount = db.orders.length;
+    db.orders = db.orders.filter((o) => o.status !== 'delivered');
+    const removedCount = beforeCount - db.orders.length;
+    saveDatabase();
+    broadcastSSE('ORDERS_CLEARED', { mode: 'delivered', removedCount, remainingCount: db.orders.length });
+    res.json({ success: true, removedCount, remainingCount: db.orders.length });
+  });
+
+  // DELETE ALL ORDERS (START COMPLETELY FRESH)
+  app.delete('/api/orders', (req: Request, res: Response) => {
+    const beforeCount = db.orders.length;
+    db.orders = [];
+    saveDatabase();
+    broadcastSSE('ORDERS_CLEARED', { mode: 'all', removedCount: beforeCount, remainingCount: 0 });
+    res.json({ success: true, removedCount: beforeCount, remainingCount: 0 });
+  });
+
+  // DELETE INDIVIDUAL ORDER
+  app.delete('/api/orders/:id', (req: Request, res: Response) => {
+    const { id } = req.params;
+    const initialLen = db.orders.length;
+    db.orders = db.orders.filter((o) => o.id !== id && o.orderNumber !== id);
+    if (db.orders.length === initialLen) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    saveDatabase();
+    broadcastSSE('ORDER_DELETED', { id });
+    res.json({ success: true, deletedId: id });
+  });
+
   // INVENTORY LOGS
   app.get('/api/inventory/logs', (req: Request, res: Response) => {
     res.json(db.inventoryLogs);

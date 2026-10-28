@@ -134,6 +134,9 @@ interface StoreContextType {
   bulkAddProducts: (newProds: Product[]) => boolean;
   bulkUpdatePrices: (percentageChange: number) => boolean;
   updateOrderStatus: (orderId: string, status: OrderStatus) => boolean;
+  clearDeliveredOrders: () => Promise<number>;
+  clearAllOrders: () => Promise<number>;
+  deleteOrder: (id: string) => Promise<boolean>;
   
   // Admin Authentication & Routing
   isAdminAuthenticated: boolean;
@@ -623,6 +626,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           processIncomingOrder(event.data.order);
         } else if (event.data?.type === 'ORDER_STATUS_UPDATE') {
           processOrderStatusUpdate(event.data.id, event.data.status);
+        } else if (event.data?.type === 'ORDERS_CLEARED') {
+          if (event.data.mode === 'delivered') {
+            setOrdersHistory((prev) => prev.filter((o) => o.status !== 'delivered'));
+          } else {
+            setOrdersHistory([]);
+          }
+        } else if (event.data?.type === 'ORDER_DELETED' && event.data?.id) {
+          setOrdersHistory((prev) => prev.filter((o) => o.id !== event.data.id));
         }
       };
     }
@@ -637,6 +648,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             processIncomingOrder(payload.order);
           } else if (payload?.statusUpdate) {
             processOrderStatusUpdate(payload.statusUpdate.id, payload.statusUpdate.status);
+          } else if (payload?.ordersCleared === 'delivered') {
+            setOrdersHistory((prev) => prev.filter((o) => o.status !== 'delivered'));
+          } else if (payload?.ordersCleared === 'all') {
+            setOrdersHistory([]);
+          } else if (payload?.deletedOrderId) {
+            setOrdersHistory((prev) => prev.filter((o) => o.id !== payload.deletedOrderId));
           }
         } catch {
           // parse fallback
@@ -660,6 +677,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             processIncomingOrder(msg.data);
           } else if (msg.type === 'ORDER_STATUS_UPDATE' && msg.data) {
             processOrderStatusUpdate(msg.data.id, msg.data.status);
+          } else if (msg.type === 'ORDERS_CLEARED') {
+            if (msg.data?.mode === 'delivered') {
+              setOrdersHistory((prev) => prev.filter((o) => o.status !== 'delivered'));
+            } else {
+              setOrdersHistory([]);
+            }
+          } else if (msg.type === 'ORDER_DELETED' && msg.data?.id) {
+            setOrdersHistory((prev) => prev.filter((o) => o.id !== msg.data.id));
           }
         } catch {
           // heartbeat or non-json message
@@ -1103,6 +1128,102 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return true;
   };
 
+  const clearDeliveredOrders = async (): Promise<number> => {
+    const deliveredCount = ordersHistory.filter((o) => o.status === 'delivered').length;
+    setOrdersHistory((prev) => prev.filter((o) => o.status !== 'delivered'));
+    if (activeOrder && activeOrder.status === 'delivered') {
+      setActiveOrder(null);
+    }
+    const remaining = ordersHistory.filter((o) => o.status !== 'delivered');
+    safeLocalStorage.setItem('nb_orders_history', JSON.stringify(remaining));
+
+    try {
+      await api.deleteDeliveredOrders();
+    } catch (e) {
+      console.warn('API deleteDeliveredOrders error:', e);
+    }
+    try {
+      await firestoreService.clearDeliveredOrders();
+    } catch (e) {
+      console.warn('Firestore clearDeliveredOrders error:', e);
+    }
+    try {
+      persistentOrdersChannel?.postMessage({ type: 'ORDERS_CLEARED', mode: 'delivered' });
+    } catch {
+      // ignore
+    }
+    safeLocalStorage.setItem(
+      'nb_orders_sync_ping',
+      JSON.stringify({ timestamp: Date.now(), ordersCleared: 'delivered' })
+    );
+    showToast(`Cleared ${deliveredCount} delivered order${deliveredCount === 1 ? '' : 's'}! Ready to start fresh.`);
+    return deliveredCount;
+  };
+
+  const clearAllOrders = async (): Promise<number> => {
+    const totalCount = ordersHistory.length;
+    setOrdersHistory([]);
+    setActiveOrder(null);
+    setUnreadOrdersCount(0);
+    setLatestReceivedOrder(null);
+    safeLocalStorage.setItem('nb_orders_history', '[]');
+    safeLocalStorage.setItem('nb_unread_orders_count', '0');
+    try {
+      localStorage.removeItem('nb_admin_picked_items');
+    } catch {
+      // ignore
+    }
+    try {
+      await api.deleteAllOrders();
+    } catch (e) {
+      console.warn('API deleteAllOrders error:', e);
+    }
+    try {
+      await firestoreService.clearAllOrders();
+    } catch (e) {
+      console.warn('Firestore clearAllOrders error:', e);
+    }
+    try {
+      persistentOrdersChannel?.postMessage({ type: 'ORDERS_CLEARED', mode: 'all' });
+    } catch {
+      // ignore
+    }
+    safeLocalStorage.setItem(
+      'nb_orders_sync_ping',
+      JSON.stringify({ timestamp: Date.now(), ordersCleared: 'all' })
+    );
+    showToast(`All orders cleared! Your store is 100% clean and ready for Go-Live.`);
+    return totalCount;
+  };
+
+  const deleteOrder = async (orderId: string): Promise<boolean> => {
+    setOrdersHistory((prev) => prev.filter((o) => o.id !== orderId));
+    if (activeOrder && activeOrder.id === orderId) {
+      setActiveOrder(null);
+    }
+    try {
+      await api.deleteOrder(orderId);
+    } catch (e) {
+      console.warn('API deleteOrder error:', e);
+    }
+    try {
+      await firestoreService.deleteOrder(orderId);
+    } catch (e) {
+      console.warn('Firestore deleteOrder error:', e);
+    }
+    try {
+      persistentOrdersChannel?.postMessage({ type: 'ORDER_DELETED', id: orderId });
+    } catch {
+      // ignore
+    }
+    safeLocalStorage.setItem(
+      'nb_orders_sync_ping',
+      JSON.stringify({ timestamp: Date.now(), deletedOrderId: orderId })
+    );
+    showToast(`Order #${orderId} deleted successfully`);
+    return true;
+  };
+
   // Category Management Handlers
   const addCategory = (newCat: Omit<CategoryItem, 'itemCount'> & { itemCount?: number }): boolean => {
     if (!isAdminAuthenticated) {
@@ -1533,6 +1654,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         bulkAddProducts,
         bulkUpdatePrices,
         updateOrderStatus,
+        clearDeliveredOrders,
+        clearAllOrders,
+        deleteOrder,
         isAdminAuthenticated,
         adminUser,
         adminLogin,
