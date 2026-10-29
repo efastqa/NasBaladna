@@ -93,7 +93,7 @@ interface StoreContextType {
   
   currency: CurrencyType;
   setCurrency: (c: CurrencyType) => void;
-  formatPrice: (amountInQar: number) => string;
+  formatPrice: (amountInQar?: number | null) => string;
   
   viewMode: 'mobile' | 'web';
   setViewMode: (mode: 'mobile' | 'web') => void;
@@ -484,19 +484,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setCategories(serverCats.value);
         }
 
-        // Merge orders from Firestore and Backend API
+        // Merge orders from Firestore and Backend API safely
         const mergedOrders = new Map<string, Order>();
         if (serverOrders.status === 'fulfilled' && Array.isArray(serverOrders.value)) {
-          serverOrders.value.forEach((o) => mergedOrders.set(o.id, o));
+          serverOrders.value.forEach((o) => {
+            if (o) {
+              const id = String(o.id || (o as any).orderNumber || '');
+              if (id) mergedOrders.set(id, { ...o, id });
+            }
+          });
         }
         if (cloudOrders.status === 'fulfilled' && Array.isArray(cloudOrders.value)) {
-          cloudOrders.value.forEach((o) => mergedOrders.set(o.id, o));
+          cloudOrders.value.forEach((o) => {
+            if (o) {
+              const id = String(o.id || (o as any).orderNumber || '');
+              if (id) mergedOrders.set(id, { ...o, id });
+            }
+          });
         }
         if (mergedOrders.size > 0) {
           const list = Array.from(mergedOrders.values());
           list.sort((a, b) => {
-            const timeA = (a as any).createdTimestamp || parseInt(a.id.replace(/\D/g, ''), 10) || 0;
-            const timeB = (b as any).createdTimestamp || parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+            const idA = String(a?.id || (a as any)?.orderNumber || '');
+            const idB = String(b?.id || (b as any)?.orderNumber || '');
+            const timeA =
+              (a as any)?.createdTimestamp ||
+              (a?.createdAt ? new Date(a.createdAt).getTime() : 0) ||
+              parseInt(idA.replace(/\D/g, ''), 10) ||
+              0;
+            const timeB =
+              (b as any)?.createdTimestamp ||
+              (b?.createdAt ? new Date(b.createdAt).getTime() : 0) ||
+              parseInt(idB.replace(/\D/g, ''), 10) ||
+              0;
             return timeB - timeA;
           });
           setOrdersHistory(list);
@@ -758,9 +778,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, 3200);
   };
 
-  const formatPrice = (amountInQar: number) => {
-    const config = CURRENCY_RATES[currency];
-    return config.format(amountInQar);
+  const formatPrice = (amountInQar?: number | null) => {
+    const val = typeof amountInQar === 'number' && !isNaN(amountInQar) ? amountInQar : (Number(amountInQar) || 0);
+    const config = CURRENCY_RATES[currency] || CURRENCY_RATES.QAR;
+    return config.format(val);
   };
 
   const adminLogin = async (username: string, password: string): Promise<boolean> => {
@@ -824,23 +845,39 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         api.getOrders(),
       ]);
       const mergedMap = new Map<string, Order>();
-      if (fsOrders.status === 'fulfilled') {
-        fsOrders.value.forEach((o) => mergedMap.set(o.id, o));
+      if (fsOrders.status === 'fulfilled' && Array.isArray(fsOrders.value)) {
+        fsOrders.value.forEach((o) => {
+          if (o) {
+            const id = String(o.id || (o as any).orderNumber || '');
+            if (id) mergedMap.set(id, { ...o, id });
+          }
+        });
       }
       if (apiOrders.status === 'fulfilled' && Array.isArray(apiOrders.value)) {
         apiOrders.value.forEach((o) => {
-          if (!mergedMap.has(o.id)) mergedMap.set(o.id, o);
+          if (o) {
+            const id = String(o.id || (o as any).orderNumber || '');
+            if (id && !mergedMap.has(id)) mergedMap.set(id, { ...o, id });
+          }
         });
       }
       const combined = Array.from(mergedMap.values());
       combined.sort((a, b) => {
-        const timeA = (a as any).createdTimestamp || parseInt(a.id.replace(/\D/g, ''), 10) || 0;
-        const timeB = (b as any).createdTimestamp || parseInt(b.id.replace(/\D/g, ''), 10) || 0;
+        const idA = String(a?.id || (a as any)?.orderNumber || '');
+        const idB = String(b?.id || (b as any)?.orderNumber || '');
+        const timeA =
+          (a as any)?.createdTimestamp ||
+          (a?.createdAt ? new Date(a.createdAt).getTime() : 0) ||
+          parseInt(idA.replace(/\D/g, ''), 10) ||
+          0;
+        const timeB =
+          (b as any)?.createdTimestamp ||
+          (b?.createdAt ? new Date(b.createdAt).getTime() : 0) ||
+          parseInt(idB.replace(/\D/g, ''), 10) ||
+          0;
         return timeB - timeA;
       });
-      if (combined.length > 0) {
-        setOrdersHistory(combined);
-      }
+      setOrdersHistory(combined);
       showToast(`Refreshed ${combined.length} live orders from cloud`);
     } catch {
       showToast('Could not reach backend to refresh orders');

@@ -347,16 +347,16 @@ export const LiveOrderTracking: React.FC = () => {
               {/* Courier Profile Card */}
               {(() => {
                 const driverInitials = order.courier.name
-                  ? order.courier.name
+                  ? String(order.courier.name)
                       .split(' ')
                       .map((n) => n[0])
                       .join('')
                       .substring(0, 2)
                       .toUpperCase()
                   : 'NB';
-                const cleanDriverPhone = order.courier.phone.replace(/[^0-9]/g, '');
-                const driverWhatsAppUrl = `https://wa.me/${cleanDriverPhone}?text=${encodeURIComponent(
-                  `Hello ${order.courier.name}, I am contacting you regarding my NasBaladna delivery (Order #${order.orderNumber}) to ${order.address}.`
+                const cleanDriverPhone = String(order.courier?.phone || '').replace(/[^0-9]/g, '');
+                const driverWhatsAppUrl = `https://wa.me/${cleanDriverPhone || '97477315415'}?text=${encodeURIComponent(
+                  `Hello ${order.courier?.name || 'Driver'}, I am contacting you regarding my NasBaladna delivery (Order #${order.orderNumber}) to ${order.address}.`
                 )}`;
 
                 return (

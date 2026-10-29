@@ -842,10 +842,38 @@ export const BUSINESS_OWNER_CONTACT = {
 };
 
 export const CURRENCY_RATES = {
-  QAR: { symbol: 'QAR', rate: 1.0, format: (amount: number) => `QAR ${amount.toFixed(2)}` },
-  AED: { symbol: 'AED', rate: 1.01, format: (amount: number) => `AED ${(amount * 1.01).toFixed(2)}` },
-  SAR: { symbol: 'SAR', rate: 1.03, format: (amount: number) => `SAR ${(amount * 1.03).toFixed(2)}` },
-  USD: { symbol: '$', rate: 0.274, format: (amount: number) => `$${(amount * 0.274).toFixed(2)}` },
+  QAR: {
+    symbol: 'QAR',
+    rate: 1.0,
+    format: (amount?: number | null) => {
+      const num = typeof amount === 'number' && !isNaN(amount) ? amount : (Number(amount) || 0);
+      return `QAR ${num.toFixed(2)}`;
+    },
+  },
+  AED: {
+    symbol: 'AED',
+    rate: 1.01,
+    format: (amount?: number | null) => {
+      const num = typeof amount === 'number' && !isNaN(amount) ? amount : (Number(amount) || 0);
+      return `AED ${(num * 1.01).toFixed(2)}`;
+    },
+  },
+  SAR: {
+    symbol: 'SAR',
+    rate: 1.03,
+    format: (amount?: number | null) => {
+      const num = typeof amount === 'number' && !isNaN(amount) ? amount : (Number(amount) || 0);
+      return `SAR ${(num * 1.03).toFixed(2)}`;
+    },
+  },
+  USD: {
+    symbol: '$',
+    rate: 0.274,
+    format: (amount?: number | null) => {
+      const num = typeof amount === 'number' && !isNaN(amount) ? amount : (Number(amount) || 0);
+      return `$${(num * 0.274).toFixed(2)}`;
+    },
+  },
 };
 
 export const DEFAULT_DELIVERY_DRIVER: DeliveryDriverConfig = {

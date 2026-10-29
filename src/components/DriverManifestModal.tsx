@@ -125,24 +125,24 @@ export const DriverManifestModal: React.FC<DriverManifestModalProps> = ({
 
       return [
         idx + 1,
-        `"${ord.orderNumber}"`,
-        `"${ord.customerName.replace(/"/g, '""')}"`,
-        `"${ord.phone}"`,
-        `"${ord.district.replace(/"/g, '""')}"`,
-        `"${ord.address.replace(/"/g, '""')}"`,
+        `"${ord.orderNumber || ord.id || ''}"`,
+        `"${String(ord.customerName || '').replace(/"/g, '""')}"`,
+        `"${ord.phone || ''}"`,
+        `"${String(ord.district || '').replace(/"/g, '""')}"`,
+        `"${String(ord.address || '').replace(/"/g, '""')}"`,
         coords.lat,
         coords.lng,
         `"${navUrl}"`,
-        `"${ord.deliverySlot.replace(/"/g, '""')}"`,
+        `"${String(ord.deliverySlot || '').replace(/"/g, '""')}"`,
         `"${serviceLevel}"`,
         `"${dropoff}"`,
         `"${doorbell}"`,
-        `"${ord.paymentMethod}"`,
+        `"${ord.paymentMethod || 'cod'}"`,
         `"${payment}"`,
-        ord.total,
-        `"${(ord.deliveryNotes || '').replace(/"/g, '""')}"`,
+        ord.total || 0,
+        `"${String(ord.deliveryNotes || '').replace(/"/g, '""')}"`,
         `"${itemsList.replace(/"/g, '""')}"`,
-        `"${ord.status}"`,
+        `"${ord.status || 'confirmed'}"`,
       ].join(',');
     });
 
@@ -209,7 +209,7 @@ export const DriverManifestModal: React.FC<DriverManifestModalProps> = ({
 
   const handleDispatchWhatsApp = () => {
     const message = buildDriverWhatsAppMessage();
-    const cleanPhone = (driverInfo.dispatchWhatsApp || driverInfo.phone).replace(/[^0-9]/g, '');
+    const cleanPhone = String(driverInfo?.dispatchWhatsApp || driverInfo?.phone || '').replace(/[^0-9]/g, '');
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
     showToast(`Opened WhatsApp with complete ${filteredOrders.length}-stop driver route manifest!`);
@@ -575,8 +575,8 @@ export const DriverManifestModal: React.FC<DriverManifestModalProps> = ({
                         </a>
 
                         <a
-                          href={`https://wa.me/${ord.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                            `Hello ${ord.customerName}! Your NasBaladna fresh order #${ord.orderNumber} is arriving soon with our cold-chain courier ${driverInfo.name}.`
+                          href={`https://wa.me/${String(ord.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                            `Hello ${ord.customerName || 'Valued Customer'}! Your NasBaladna fresh order #${ord.orderNumber || ord.id} is arriving soon with our cold-chain courier ${driverInfo?.name || 'Courier'}.`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"

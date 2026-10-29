@@ -33,6 +33,54 @@ import {
   X,
 } from 'lucide-react';
 
+class AdminErrorBoundary extends React.Component<
+  { children: React.ReactNode; onBackToStore: () => void },
+  { hasError: boolean; error?: Error }
+> {
+  state: { hasError: boolean; error?: Error } = { hasError: false };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('AdminPortal rendering error caught by localized boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center space-y-4 shadow-xl">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto text-xl">
+              ⚠️
+            </div>
+            <h2 className="text-lg font-bold text-white">Admin Console Recovered</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              The admin console encountered an unexpected data format and recovered safely without affecting customer storefront operations.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => this.setState({ hasError: false, error: undefined })}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Retry Admin
+              </button>
+              <button
+                onClick={this.props.onBackToStore}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Back to Store
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const MainStoreContent: React.FC = () => {
   const {
     products,
@@ -56,9 +104,13 @@ const MainStoreContent: React.FC = () => {
     ownerPhone,
   } = useStore();
 
-  // If in Admin mode, render the Admin Portal (Login or Dashboard)
+  // If in Admin mode, render the Admin Portal (Login or Dashboard) protected by isolated boundary
   if (currentView === 'admin') {
-    return <AdminPortal />;
+    return (
+      <AdminErrorBoundary onBackToStore={() => setCurrentView('customer')}>
+        <AdminPortal />
+      </AdminErrorBoundary>
+    );
   }
 
   // Filter products by selected category and search query

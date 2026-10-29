@@ -39,12 +39,27 @@ class RootErrorBoundary extends Component<Props, State> {
             <p className="text-xs text-slate-500 leading-relaxed">
               We encountered a temporary display issue. Tap below to reload the fresh harvest catalog.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-            >
-              Refresh Storefront
-            </button>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={() => {
+                  this.setState({ hasError: false, error: undefined });
+                }}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    sessionStorage.clear();
+                  } catch {}
+                  window.location.reload();
+                }}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Reload Fresh Storefront
+              </button>
+            </div>
           </div>
         </div>
       );

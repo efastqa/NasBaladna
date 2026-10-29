@@ -114,19 +114,19 @@ export const NotificationService = {
     if (status === 'on_the_way') statusMsg = `dispatched with courier ${courierName} (${courierPhone})`;
     if (status === 'delivered') statusMsg = 'delivered to your doorstep. Enjoy fresh produce!';
 
-    return `NasBaladna Fresh: Order #${order.orderNumber} is ${statusMsg}. Total: ${order.currency || 'QAR'} ${(order.total || 0).toFixed(2)}. Address: ${order.address}. Hotline: +974 77315415.`;
+    return `NasBaladna Fresh: Order #${order?.orderNumber || order?.id || 'N/A'} is ${statusMsg}. Total: ${order?.currency || 'QAR'} ${(order?.total || 0).toFixed(2)}. Address: ${order?.address || ''}. Hotline: +974 77315415.`;
   },
 
   // Generate direct click-to-chat WhatsApp link
-  getWhatsAppUrl(phone: string, text: string): string {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+  getWhatsAppUrl(phone: string | undefined | null, text: string): string {
+    const cleanPhone = String(phone || '').replace(/[^0-9]/g, '');
+    return `https://wa.me/${cleanPhone || '97477315415'}?text=${encodeURIComponent(text || '')}`;
   },
 
   // Generate direct click-to-sms link for mobile browsers
-  getSmsUrl(phone: string, text: string): string {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    return `sms:${cleanPhone}?body=${encodeURIComponent(text)}`;
+  getSmsUrl(phone: string | undefined | null, text: string): string {
+    const cleanPhone = String(phone || '').replace(/[^0-9]/g, '');
+    return `sms:${cleanPhone}?body=${encodeURIComponent(text || '')}`;
   },
 
   // Automated dispatch simulation logger (stores into localStorage & backend for audit trail)

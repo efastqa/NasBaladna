@@ -251,18 +251,19 @@ export const AdminPortal: React.FC = () => {
   };
 
   const sendAdminOrderAlertWhatsApp = (order: Order) => {
+    if (!order) return;
     const text = `🚨 *NEW WEBSITE ORDER RECEIVED*\n` +
       `━━━━━━━━━━━━━━━━━━━\n` +
-      `*Order #:* ${order.orderNumber}\n` +
-      `*Customer:* ${order.customerName} (${order.phone})\n` +
-      `*Delivery Area:* ${order.district}\n` +
-      `*Address:* ${order.address}\n` +
-      `*Delivery Slot:* ${order.deliverySlot}\n` +
-      `*Payment:* ${order.paymentMethod.toUpperCase()} (${order.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'})\n` +
+      `*Order #:* ${order.orderNumber || order.id || 'N/A'}\n` +
+      `*Customer:* ${order.customerName || 'Customer'} (${order.phone || ''})\n` +
+      `*Delivery Area:* ${order.district || ''}\n` +
+      `*Address:* ${order.address || ''}\n` +
+      `*Delivery Slot:* ${order.deliverySlot || 'Standard Slot'}\n` +
+      `*Payment:* ${(order.paymentMethod || 'cod').toUpperCase()} (${order.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'})\n` +
       `*Total Amount:* ${order.currency || 'QAR'} ${(order.total || 0).toFixed(2)}\n\n` +
       `*Items Ordered:*\n` +
       (order.items || []).map((i) => `• ${i.quantity || 1}x ${i.product?.name || (i as any).name || 'Harvest Item'} (${i.selectedWeight || 'Standard'})`).join('\n') +
-      `\n\nDispatching with Driver: ${deliveryDriver.name} (${deliveryDriver.phone})`;
+      `\n\nDispatching with Driver: ${deliveryDriver?.name || 'Courier'} (${deliveryDriver?.phone || ''})`;
 
     const targetUrl = NotificationService.getWhatsAppUrl(ownerPhone, text);
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
@@ -312,28 +313,28 @@ export const AdminPortal: React.FC = () => {
         : 'Hand to Customer';
 
       const doorbell = ord.doorbellPreference === 'silent' ? 'Silent Delivery (No Bell)' : 'Ring Bell / Knock';
-      const payment = ord.paymentMethod === 'cod' ? `COD (${ord.total} QAR)` : `Prepaid Online (${ord.total} QAR)`;
+      const payment = (ord.paymentMethod || 'cod') === 'cod' ? `COD (${ord.total || 0} QAR)` : `Prepaid Online (${ord.total || 0} QAR)`;
 
       return [
         idx + 1,
-        `"${ord.orderNumber}"`,
-        `"${ord.customerName.replace(/"/g, '""')}"`,
-        `"${ord.phone}"`,
-        `"${ord.district.replace(/"/g, '""')}"`,
-        `"${ord.address.replace(/"/g, '""')}"`,
+        `"${ord.orderNumber || ord.id || ''}"`,
+        `"${String(ord.customerName || '').replace(/"/g, '""')}"`,
+        `"${ord.phone || ''}"`,
+        `"${String(ord.district || '').replace(/"/g, '""')}"`,
+        `"${String(ord.address || '').replace(/"/g, '""')}"`,
         coords.lat,
         coords.lng,
         `"${navUrl}"`,
-        `"${ord.deliverySlot.replace(/"/g, '""')}"`,
+        `"${String(ord.deliverySlot || '').replace(/"/g, '""')}"`,
         `"${serviceLevel}"`,
         `"${dropoff}"`,
         `"${doorbell}"`,
-        `"${ord.paymentMethod}"`,
+        `"${ord.paymentMethod || 'cod'}"`,
         `"${payment}"`,
-        ord.total,
-        `"${(ord.deliveryNotes || '').replace(/"/g, '""')}"`,
+        ord.total || 0,
+        `"${String(ord.deliveryNotes || '').replace(/"/g, '""')}"`,
         `"${itemsList.replace(/"/g, '""')}"`,
-        `"${ord.status}"`,
+        `"${ord.status || 'confirmed'}"`,
       ].join(',');
     });
 
@@ -1548,46 +1549,48 @@ export const AdminPortal: React.FC = () => {
                   {latestReceivedOrder ? (
                     <div className="mt-1">
                       <h3 className="text-base sm:text-lg font-bold text-white">
-                        Order #{latestReceivedOrder.orderNumber} · {latestReceivedOrder.customerName}
+                        Order #{latestReceivedOrder.orderNumber || latestReceivedOrder.id || 'N/A'} · {latestReceivedOrder.customerName || 'Customer'}
                       </h3>
                       <p className="text-xs text-slate-300 mt-0.5">
                         <strong className="text-emerald-400 font-mono">
-                          {formatPrice(latestReceivedOrder.total)}
+                          {formatPrice(latestReceivedOrder.total || 0)}
                         </strong>{' '}
-                        ({latestReceivedOrder.items.length} items) · Delivery to{' '}
-                        <span className="text-slate-200">{latestReceivedOrder.district}</span> · Slot:{' '}
-                        <span className="text-slate-200">{latestReceivedOrder.deliverySlot}</span> · Method:{' '}
-                        <span className="uppercase text-amber-300 font-mono">{latestReceivedOrder.paymentMethod}</span>
+                        ({(latestReceivedOrder.items || []).length} items) · Delivery to{' '}
+                        <span className="text-slate-200">{latestReceivedOrder.district || 'Doha'}</span> · Slot:{' '}
+                        <span className="text-slate-200">{latestReceivedOrder.deliverySlot || 'Standard Slot'}</span> · Method:{' '}
+                        <span className="uppercase text-amber-300 font-mono">{latestReceivedOrder.paymentMethod || 'cod'}</span>
                       </p>
 
                       {/* Fast Visual Item & Quantity Chips */}
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Items to Pick:
-                        </span>
-                        {latestReceivedOrder.items.map((it, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-xs text-white shadow-xs"
-                          >
-                            <span
-                              className={`px-1.5 py-0.2 rounded font-black text-[10px] font-mono shadow-xs ${
-                                (it.quantity || 1) > 1
-                                  ? 'bg-amber-400 text-slate-950'
-                                  : 'bg-emerald-500 text-slate-950'
-                              }`}
-                            >
-                              x{it.quantity || 1}
-                            </span>
-                            <span className="font-semibold truncate max-w-[140px]">
-                              {it.product?.name || (it as any).name}
-                            </span>
-                            <span className="text-[10px] text-emerald-300 font-medium">
-                              ({it.selectedWeight || 'Standard'})
-                            </span>
+                      {(latestReceivedOrder.items || []).length > 0 && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Items to Pick:
                           </span>
-                        ))}
-                      </div>
+                          {(latestReceivedOrder.items || []).map((it, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-xs text-white shadow-xs"
+                            >
+                              <span
+                                className={`px-1.5 py-0.2 rounded font-black text-[10px] font-mono shadow-xs ${
+                                  (it.quantity || 1) > 1
+                                    ? 'bg-amber-400 text-slate-950'
+                                    : 'bg-emerald-500 text-slate-950'
+                                }`}
+                              >
+                                x{it.quantity || 1}
+                              </span>
+                              <span className="font-semibold truncate max-w-[140px]">
+                                {it.product?.name || (it as any).name || 'Item'}
+                              </span>
+                              <span className="text-[10px] text-emerald-300 font-medium">
+                                ({it.selectedWeight || 'Standard'})
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-xs text-slate-300 mt-1">
@@ -3092,8 +3095,8 @@ export const AdminPortal: React.FC = () => {
                 {/* Direct Test WhatsApp Button */}
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <a
-                    href={`https://wa.me/${deliveryDriver.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                      `Hello ${deliveryDriver.name}, testing WhatsApp driver connection from NasBaladna Admin Console.`
+                    href={`https://wa.me/${String(deliveryDriver?.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                      `Hello ${deliveryDriver?.name || 'Driver'}, testing WhatsApp driver connection from NasBaladna Admin Console.`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -4314,12 +4317,13 @@ export const AdminPortal: React.FC = () => {
                     const isExpress = ord.isExpress || ord.serviceType === 'express';
                     const isEco = ord.serviceType === 'eco_green';
 
-                    const totalOrderUnits = (ord.items || []).reduce((sum, it) => sum + (it.quantity || 1), 0);
-                    const pickedForThisOrderCount = (ord.items || []).filter((it, itemIdx) => {
+                    const safeItems = ord.items || [];
+                    const totalOrderUnits = safeItems.reduce((sum, it) => sum + (it.quantity || 1), 0);
+                    const pickedForThisOrderCount = safeItems.filter((it, itemIdx) => {
                       const itemKey = `${it.productId || it.product?.id || itemIdx}-${it.selectedWeight || 'std'}`;
                       return !!orderPickedItemsMap[ord.id]?.[itemKey];
                     }).length;
-                    const isOrderFullyPicked = (ord.items || []).length > 0 && pickedForThisOrderCount === ord.items.length;
+                    const isOrderFullyPicked = safeItems.length > 0 && pickedForThisOrderCount === safeItems.length;
 
                     return (
                       <div
@@ -4336,7 +4340,7 @@ export const AdminPortal: React.FC = () => {
                         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-slate-800/80">
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-bold text-white text-base font-mono">#{ord.orderNumber}</span>
+                              <span className="font-bold text-white text-base font-mono">#{ord.orderNumber || ord.id || 'N/A'}</span>
 
                               {isNewOrder && (
                                 <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-600 text-white animate-pulse flex items-center gap-1">
@@ -4360,12 +4364,12 @@ export const AdminPortal: React.FC = () => {
                               )}
 
                               <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
-                                {ord.status.replace('_', ' ')}
+                                {String(ord.status || 'confirmed').replace('_', ' ')}
                               </span>
-                              <span className="text-slate-400">· {ord.createdAt}</span>
+                              <span className="text-slate-400">· {ord.createdAt || 'Recent'}</span>
 
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                                {ord.paymentMethod.toUpperCase()} · {ord.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'}
+                                {String(ord.paymentMethod || 'cod').toUpperCase()} · {ord.paymentStatus === 'paid' ? 'PAID' : 'DUE ON ARRIVAL'}
                               </span>
                             </div>
 
@@ -4550,10 +4554,10 @@ export const AdminPortal: React.FC = () => {
                                 Items to Gather in Store
                               </span>
                               <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-emerald-300 font-bold border border-slate-700">
-                                {ord.items.length} item{ord.items.length > 1 ? 's' : ''} ({totalOrderUnits} units)
+                                {safeItems.length} item{safeItems.length > 1 ? 's' : ''} ({totalOrderUnits} units)
                               </span>
                               <span className="text-[11px] font-mono text-slate-400">
-                                · {pickedForThisOrderCount}/{ord.items.length} gathered
+                                · {pickedForThisOrderCount}/{safeItems.length} gathered
                               </span>
                             </div>
 
@@ -4622,7 +4626,7 @@ export const AdminPortal: React.FC = () => {
                           {/* VIEW MODE 1: VISUAL PRODUCT CARDS (HIGH-CONTRAST QUANTITY & PHOTOS) */}
                           {shopPickViewMode === 'cards' && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                              {ord.items.map((item, itemIdx) => {
+                              {safeItems.map((item, itemIdx) => {
                                 const itemKey = `${item.productId || item.product?.id || itemIdx}-${item.selectedWeight || 'std'}`;
                                 const isPicked = !!(orderPickedItemsMap[ord.id]?.[itemKey]);
                                 const dept = getDepartmentInfo(item.product?.category);
@@ -4739,7 +4743,7 @@ export const AdminPortal: React.FC = () => {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800/60">
-                                  {ord.items.map((item, itemIdx) => {
+                                  {safeItems.map((item, itemIdx) => {
                                     const itemKey = `${item.productId || item.product?.id || itemIdx}-${item.selectedWeight || 'std'}`;
                                     const isPicked = !!(orderPickedItemsMap[ord.id]?.[itemKey]);
                                     const dept = getDepartmentInfo(item.product?.category);
@@ -4820,7 +4824,7 @@ export const AdminPortal: React.FC = () => {
                           {/* VIEW MODE 3: COMPACT TAGS */}
                           {shopPickViewMode === 'compact' && (
                             <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800">
-                              {ord.items.map((item, itemIdx) => {
+                              {safeItems.map((item, itemIdx) => {
                                 const itemKey = `${item.productId || item.product?.id || itemIdx}-${item.selectedWeight || 'std'}`;
                                 const isPicked = !!(orderPickedItemsMap[ord.id]?.[itemKey]);
                                 const qty = item.quantity || 1;
@@ -4874,29 +4878,35 @@ export const AdminPortal: React.FC = () => {
             </div>
 
             <div className="border border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-800 bg-slate-900/50">
-              {inventoryLogs.map((log) => (
-                <div key={log.id} className="p-3 text-xs flex items-center justify-between">
-                  <div>
-                    <span className="font-bold text-white block">{log.productName}</span>
-                    <span className="text-[11px] text-slate-400">
-                      Reason: {log.reason.replace('_', ' ')} · Timestamp: {log.timestamp}
-                    </span>
-                  </div>
-
-                  <div className="text-right font-mono">
-                    <span
-                      className={`font-bold ${
-                        log.change > 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
-                    >
-                      {log.change > 0 ? `+${log.change}` : log.change} units
-                    </span>
-                    <span className="block text-[11px] text-slate-400">
-                      New Stock: {log.newStock}
-                    </span>
-                  </div>
+              {(inventoryLogs || []).length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-500">
+                  No inventory ledger logs recorded yet.
                 </div>
-              ))}
+              ) : (
+                (inventoryLogs || []).map((log) => (
+                  <div key={log.id} className="p-3 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-white block">{log.productName || 'Produce Item'}</span>
+                      <span className="text-[11px] text-slate-400">
+                        Reason: {String(log?.reason || 'audit').replace('_', ' ')} · Timestamp: {log?.timestamp || 'Recent'}
+                      </span>
+                    </div>
+
+                    <div className="text-right font-mono">
+                      <span
+                        className={`font-bold ${
+                          (log.change || 0) > 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}
+                      >
+                        {(log.change || 0) > 0 ? `+${log.change}` : (log.change || 0)} units
+                      </span>
+                      <span className="block text-[11px] text-slate-400">
+                        New Stock: {log.newStock ?? 0}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
